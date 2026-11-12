@@ -46,6 +46,10 @@ docker run --rm -v backupviiz_backupviiz-data:/data -v "$PWD":/out alpine cp /da
 Ou arrêtez le conteneur et archivez le volume : `docker run --rm -v backupviiz_backupviiz-data:/data -v "$PWD":/out alpine tar czf /out/backupviiz-data.tgz -C /data .`
 Pensez à appliquer la règle 3-2-1 à cette sauvegarde. Les stratégies peuvent aussi être exportées en JSON depuis l'interface.
 
+## Brancher restic (état réel des sauvegardes)
+
+Créez un jeton dans « Mon compte » > « Jetons API », puis lancez `scripts/restic-report.sh -- restic backup …` sur la machine : BackupViiz affiche la date du dernier snapshot et alerte si la sauvegarde est périmée ou échoue. Variables : `BACKUPVIIZ_URL`, `BACKUPVIIZ_TOKEN`, `BACKUPVIIZ_STRATEGY`, `BACKUPVIIZ_NODE` ou `BACKUPVIIZ_HOST`. Mise en place pas à pas (cron, systemd, PowerShell) : [docs/RESTIC.md](docs/RESTIC.md).
+
 ## Développement
 
 Node.js >= 22.13 requis.

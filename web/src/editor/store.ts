@@ -6,9 +6,8 @@ import type { PaletteItem } from './presets';
 const HISTORY_LIMIT = 100;
 
 type Statuses = Record<string, NodeStatus>;
-const evalWith = evaluate as (doc: StrategyDoc, opts?: { statuses?: Statuses; now?: Date }) => Evaluation;
 /** Évaluation locale tenant compte des statuts réels reportés. */
-const evaluateDoc = (doc: StrategyDoc, statuses: Statuses): Evaluation => evalWith(doc, { statuses });
+const evaluateDoc = (doc: StrategyDoc, statuses: Statuses): Evaluation => evaluate(doc, { statuses });
 const COALESCE_MS = 900;
 
 export function uid(prefix: string): string {
