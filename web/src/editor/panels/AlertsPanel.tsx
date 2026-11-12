@@ -30,7 +30,8 @@ export default function AlertsPanel({ evaluation, onHoverAlert, onSelectNodes, o
 
   const activate = (a: Alert) => {
     onSelectNodes(a.nodeIds);
-    if (a.nodeIds.length > 0) onFocusNode?.(a.nodeIds[0]);
+    const first = a.nodeIds[0];
+    if (first !== undefined) onFocusNode?.(first);
   };
 
   return (

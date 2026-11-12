@@ -6,10 +6,10 @@ const P = 1;
 const KEYLEN = 32;
 const MAXMEM = 128 * N * R * 2;
 
-function scryptAsync(password: string, salt: Buffer, n: number, r: number, p: number): Promise<Buffer> {
+function scryptAsync(password: string, salt: Buffer, n: number, r: number, p: number, keylen = KEYLEN): Promise<Buffer> {
   const opts: ScryptOptions = { N: n, r, p, maxmem: Math.max(MAXMEM, 256 * n * r) };
   return new Promise((resolve, reject) => {
-    scrypt(password.normalize('NFKC'), salt, KEYLEN, opts, (err, key) => (err ? reject(err) : resolve(key)));
+    scrypt(password.normalize('NFKC'), salt, keylen, opts, (err, key) => (err ? reject(err) : resolve(key)));
   });
 }
 
@@ -30,17 +30,11 @@ export async function verifyPassword(password: string, stored: string): Promise<
   if (expected.length === 0) return false;
   let actual: Buffer;
   try {
-    actual = await scrypt2(password, Buffer.from(salt, 'base64'), nn, rr, pp, expected.length);
+    actual = await scryptAsync(password, Buffer.from(salt, 'base64'), nn, rr, pp, expected.length);
   } catch {
     return false;
   }
   return actual.length === expected.length && timingSafeEqual(actual, expected);
-}
-
-function scrypt2(password: string, salt: Buffer, n: number, r: number, p: number, keylen: number): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    scrypt(password.normalize('NFKC'), salt, keylen, { N: n, r, p, maxmem: Math.max(MAXMEM, 256 * n * r) }, (err, key) => (err ? reject(err) : resolve(key)));
-  });
 }
 
 let dummy: Promise<string> | undefined;
