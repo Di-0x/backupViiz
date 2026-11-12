@@ -28,7 +28,7 @@ function NodeCard({ data, selected, kind }: { data: BackupNodeData; selected?: b
     .join(' ');
   return (
     <div className={cls}>
-      {kind === 'storage' && <Handle type="target" position={Position.Left} className="bv-handle" aria-label="Entrée du lien" />}
+      {kind === 'storage' && <Handle type="target" position={Position.Left} className="bv-handle" title="Entrée du lien" />}
       <div className="bv-node__icon" aria-hidden="true">
         {meta.icon}
       </div>
@@ -49,7 +49,7 @@ function NodeCard({ data, selected, kind }: { data: BackupNodeData; selected?: b
         </span>
       )}
       {data.severity && <span className="bv-sr-only">{data.severity === 'error' ? 'Non conforme' : 'Avertissement'}</span>}
-      <Handle type="source" position={Position.Right} className="bv-handle" aria-label="Sortie du lien (glisser vers un support)" />
+      <Handle type="source" position={Position.Right} className="bv-handle" title="Sortie du lien (glisser vers un support)" />
     </div>
   );
 }

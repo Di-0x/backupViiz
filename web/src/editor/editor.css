@@ -12,7 +12,7 @@
 .bv-link { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }
 .bv-editor :focus-visible, .bv-editor-state :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .bv-hint { color: var(--muted); font-size: 13px; line-height: 1.5; padding: 4px 2px; }
-kbd { font-family: var(--mono); font-size: 11px; padding: 0 4px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; background: var(--surface-2); color: var(--muted); }
+kbd { font-family: var(--mono); font-size: 12px; padding: 0 4px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; background: var(--surface-2); color: var(--muted); }
 
 /* Toolbar */
 .bv-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--border); }
@@ -43,7 +43,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 0 4px; border: 1px sol
 .bv-pal-item__icon { display: grid; place-items: center; width: 28px; height: 28px; flex: none; color: var(--accent); }
 .bv-pal-item__icon svg { width: 22px; height: 22px; }
 .bv-pal-item__text { display: flex; flex-direction: column; line-height: 1.25; }
-.bv-pal-item__text small { color: var(--muted); font-size: 11px; }
+.bv-pal-item__text small { color: var(--muted); font-size: 12px; }
 
 .bv-editor__canvas { position: relative; min-width: 0; min-height: 0; }
 .bv-canvas { position: absolute; inset: 0; }
@@ -63,10 +63,10 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 0 4px; border: 1px sol
 .bv-node__icon { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 8px; background: var(--surface-2); color: var(--accent); }
 .bv-node__icon svg { width: 22px; height: 22px; }
 .bv-node__body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.bv-node__kind { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.bv-node__kind { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .bv-node__label { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bv-node__meta { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 11px; color: var(--muted); }
-.bv-pill { padding: 0 6px; border-radius: 8px; font-size: 10.5px; font-weight: 600; border: 1px solid var(--border); }
+.bv-node__meta { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 12px; color: var(--muted); }
+.bv-pill { padding: 0 6px; border-radius: 8px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); }
 .bv-pill--offsite { color: var(--ok); background: var(--ok-bg); border-color: transparent; }
 .bv-pill--onsite { color: var(--muted); background: var(--surface-2); }
 .bv-pill--immutable { color: var(--accent); border-color: var(--accent); }
@@ -79,7 +79,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 0 4px; border: 1px sol
 .bv-canvas .bv-edge--nosched .react-flow__edge-path { stroke-dasharray: 6 4; }
 .bv-canvas .react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); stroke-width: 3; }
 .bv-canvas .react-flow__arrowhead polyline { stroke: var(--muted); fill: var(--muted); }
-.bv-edge-label { position: absolute; padding: 1px 8px; font-size: 11px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; pointer-events: none; white-space: nowrap; }
+.bv-edge-label { position: absolute; padding: 1px 8px; font-size: 12px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; pointer-events: none; white-space: nowrap; }
 .bv-edge-label.is-selected { border-color: var(--accent); }
 
 .bv-empty { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); display: flex; flex-direction: column; gap: 6px; max-width: min(420px, 86%); padding: 16px 20px; text-align: center; color: var(--muted); background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius); pointer-events: none; font-size: 14px; }
@@ -129,3 +129,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 0 4px; border: 1px sol
   .bv-skel { animation: none; }
   .bv-canvas .react-flow__edge.animated path { animation: none !important; }
 }
+
+/* Libellés de liens toujours lisibles, au-dessus des noeuds proches. */
+.react-flow__edgelabel-renderer { z-index: 1001; }
+.bv-edge-label { z-index: 1001; box-shadow: 0 1px 3px rgb(0 0 0 / .15); }

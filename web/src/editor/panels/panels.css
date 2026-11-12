@@ -69,3 +69,7 @@
 .inspector__delete{align-self:flex-start;font:inherit;padding:.45rem .8rem;color:var(--err,#b91c1c);background:transparent;border:1px solid var(--err,#b91c1c);border-radius:var(--radius,6px);cursor:pointer}
 .inspector__delete:hover{background:var(--err-bg,#fee2e2)}
 .inspector__empty{margin:0;color:var(--muted,#6b7280);font-size:.9rem}
+
+.cbar__label{font-size:.8125rem;font-weight:600;color:var(--text,#111827);white-space:nowrap}
+@media (max-width:1100px){.cbar__label{display:none}}
+.cbar{gap:.5rem}.cbar__item{gap:.375rem}

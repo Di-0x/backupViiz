@@ -99,6 +99,7 @@ export default function Canvas() {
         type: n.kind,
         position: n.position,
         selected: sel.has(n.id),
+        ariaRole: 'group',
         ariaLabel: `${n.kind === 'source' ? 'Source' : 'Support'} ${n.label}, ${MEDIA_META[n.mediaType].label}, ${
           n.location === 'offsite' ? 'hors site' : 'sur site'
         }${severities.get(n.id) === 'error' ? ', non conforme' : ''}`,

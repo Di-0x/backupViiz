@@ -176,13 +176,15 @@ export default function StrategyEditorPage() {
         />
         <div className="bv-editor__body">
           <Palette />
-          <main className="bv-editor__canvas" aria-label="Diagramme de la stratégie">
+          <main className="bv-editor__canvas" id="main" tabIndex={-1} aria-label="Diagramme de la stratégie">
+            <h1 className="sr-only">{name}</h1>
             <Canvas />
             <button type="button" className="bv-side-fab" onClick={() => setSideOpen((o) => !o)} aria-expanded={sideOpen}>
               {sideOpen ? 'Fermer le panneau' : single ? 'Propriétés' : `Alertes (${alertCount})`}
             </button>
           </main>
           <aside className={`bv-side${sideOpen ? ' is-open' : ''}`} aria-label="Panneaux d'analyse">
+            <h2 className="sr-only">Analyse de la stratégie</h2>
             <div role="tablist" className="bv-tabs" aria-label="Panneaux">
               {(
                 [
