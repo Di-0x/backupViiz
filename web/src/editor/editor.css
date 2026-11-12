@@ -137,3 +137,8 @@ kbd { font-family: var(--mono); font-size: 12px; padding: 0 4px; border: 1px sol
 .bv-node__host { font-size: 12px; color: var(--muted); font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 190px; }
 .bv-pill--enc { color: var(--ok); border-color: var(--ok); }
 .bv-pill--noenc { color: var(--warn); border-color: var(--warn); }
+
+.bv-status { font-size: 12px; font-weight: 600; margin-top: 2px; }
+.bv-status--ok { color: var(--ok); }
+.bv-status--failed { color: var(--err); }
+.bv-status--stale { color: var(--warn); }

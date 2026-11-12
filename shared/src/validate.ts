@@ -25,6 +25,12 @@ export const backupNodeSchema = z.object({
   ip: z.string().trim().max(64, '64 caractères maximum').optional(),
   data: z.string().max(500, '500 caractères maximum').optional(),
   frequency: z.string().trim().max(100, '100 caractères maximum').optional(),
+  retention: z.string().max(200, '200 caractères maximum').optional(),
+  lastRestoreTestAt: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date invalide (AAAA-MM-JJ)')
+    .optional(),
+  staleAfterHours: z.number().int('Nombre entier requis').min(1, '1 heure minimum').max(8760, '8760 heures maximum').optional(),
   notes: notesSchema.optional(),
   position: z.object({
     x: z.number().finite().min(-1e6).max(1e6),

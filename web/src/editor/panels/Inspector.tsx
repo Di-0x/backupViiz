@@ -1,7 +1,8 @@
 import { useId } from 'react';
 import { LOCATIONS, MEDIA_TYPES } from '@backupviiz/shared';
-import type { BackupEdge, BackupNode, Location, MediaType } from '@backupviiz/shared';
+import type { BackupEdge, BackupNode, Location, MediaType, NodeStatus } from '@backupviiz/shared';
 import { LOCATION_LABEL, MEDIA_META, METHOD_SUGGESTIONS, SCHEDULE_SUGGESTIONS } from './mediaMeta';
+import { formatSize, relativeTime } from './nodeStatus';
 import './panels.css';
 
 export interface InspectorProps {
@@ -11,9 +12,11 @@ export interface InspectorProps {
   onChangeNode: (id: string, patch: Partial<BackupNode>) => void;
   onChangeEdge: (id: string, patch: Partial<BackupEdge>) => void;
   onDelete: (kind: 'node' | 'edge', id: string) => void;
+  /** Statut réel reporté pour le noeud sélectionné (lecture seule). */
+  status?: NodeStatus;
 }
 
-export default function Inspector({ node, edge, nodes, onChangeNode, onChangeEdge, onDelete }: InspectorProps) {
+export default function Inspector({ node, edge, nodes, onChangeNode, onChangeEdge, onDelete, status }: InspectorProps) {
   const uid = useId();
   const id = (s: string) => `${uid}-${s}`;
 
@@ -59,6 +62,24 @@ export default function Inspector({ node, edge, nodes, onChangeNode, onChangeEdg
           <datalist id={id('freq-list')}>{SCHEDULE_SUGGESTIONS.map((s) => <option key={s} value={s} />)}</datalist>
         </div>
         <div className="inspector__field">
+          <label htmlFor={id('ret')}>Rétention</label>
+          <input id={id('ret')} type="text" maxLength={200} placeholder="ex : 7 quotidiens, 4 hebdo, 12 mensuels" value={node.retention ?? ''} onChange={(e) => onChangeNode(node.id, { retention: e.target.value || undefined })} />
+        </div>
+        <div className="inspector__field">
+          <label htmlFor={id('restore')}>Dernier test de restauration</label>
+          <input id={id('restore')} type="date" value={node.lastRestoreTestAt ?? ''} onChange={(e) => onChangeNode(node.id, { lastRestoreTestAt: e.target.value || undefined })} />
+        </div>
+        {!isSource && (
+          <div className="inspector__field">
+            <label htmlFor={id('stale')}>Alerte si aucun backup depuis (heures)</label>
+            <input id={id('stale')} type="number" min={1} max={8760} step={1} inputMode="numeric" placeholder="ex : 26" aria-describedby={id('stale-h')} value={node.staleAfterHours ?? ''} onChange={(e) => {
+              const v = e.target.value === '' ? undefined : Math.min(8760, Math.max(1, Math.round(Number(e.target.value))));
+              onChangeNode(node.id, { staleAfterHours: v !== undefined && Number.isFinite(v) ? v : undefined });
+            }} />
+            <p id={id('stale-h')} className="inspector__hint">Une alerte apparaît si aucun backup réussi n'est reporté depuis ce délai.</p>
+          </div>
+        )}
+        <div className="inspector__field">
           <label htmlFor={id('enc')}>Chiffrement</label>
           <select id={id('enc')} value={node.encrypted === undefined ? '' : node.encrypted ? 'yes' : 'no'} onChange={(e) => onChangeNode(node.id, { encrypted: e.target.value === '' ? undefined : e.target.value === 'yes' })}>
             <option value="">Non renseigné</option>
@@ -74,6 +95,29 @@ export default function Inspector({ node, edge, nodes, onChangeNode, onChangeEdg
           <label htmlFor={id('notes')}>Notes</label>
           <textarea id={id('notes')} rows={3} maxLength={500} value={node.notes ?? ''} onChange={(e) => onChangeNode(node.id, { notes: e.target.value })} />
         </div>
+        {status && (
+          <fieldset className="inspector__fieldset">
+            <legend>État réel</legend>
+            <dl className="inspector__status">
+              <dt>Outil</dt>
+              <dd>{status.tool}</dd>
+              <dt>Dernier résultat</dt>
+              <dd className={status.lastStatus === 'failed' ? 'is-failed' : undefined}>{status.lastStatus === 'failed' ? 'Échec' : 'Réussi'}</dd>
+              <dt>Dernier succès</dt>
+              <dd>{status.lastSuccessAt ? `${relativeTime(status.lastSuccessAt)} (${new Date(status.lastSuccessAt).toLocaleString('fr-FR')})` : 'Aucun'}</dd>
+              <dt>Snapshots</dt>
+              <dd>{status.snapshotCount ?? '—'}</dd>
+              <dt>Taille</dt>
+              <dd>{formatSize(status.sizeBytes)}</dd>
+              {status.message && (
+                <>
+                  <dt>Message</dt>
+                  <dd>{status.message}</dd>
+                </>
+              )}
+            </dl>
+          </fieldset>
+        )}
         <button type="button" className="inspector__delete" onClick={() => onDelete('node', node.id)}>
           Supprimer {isSource ? 'la source' : 'le support'}
         </button>

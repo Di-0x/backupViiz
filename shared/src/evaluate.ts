@@ -1,9 +1,12 @@
 import type {
   Alert,
+  AlertFix,
   BackupNode,
   ComplianceStatus,
   Evaluation,
+  Location,
   MediaType,
+  NodeStatus,
   Severity,
   SourceEvaluation,
   StrategyDoc,
@@ -15,10 +18,54 @@ function plural(n: number, one: string, many: string): string {
   return n > 1 ? many : one;
 }
 
+export interface EvaluateOptions {
+  /** Statuts réels reportés par un outil de backup, par id de noeud. Absent = aucune alerte freshness. */
+  statuses?: Record<string, NodeStatus>;
+  /** Horloge injectée (tests, rendu déterministe). Défaut : maintenant. */
+  now?: Date;
+}
+
+/** Seuils (jours) des alertes de test de restauration. */
+export const RESTORE_STALE_DAYS = 180;
+export const RESTORE_VERY_STALE_DAYS = 365;
+
+const DAY_MS = 86_400_000;
+const HOUR_MS = 3_600_000;
+
+/** Types proposés par les corrections automatiques, par ordre de préférence. */
+const FIX_MEDIA_PREFERENCE: MediaType[] = ['nas', 'cloud', 'tape', 'usb', 'disk', 'object-storage', 'ssd', 'optical'];
+const MEDIA_FR: Record<MediaType, string> = {
+  disk: 'Disque',
+  ssd: 'SSD',
+  nas: 'NAS',
+  tape: 'Bande',
+  usb: 'Disque USB',
+  cloud: 'Cloud',
+  'object-storage': 'Stockage objet',
+  optical: 'Support optique',
+  other: 'Support',
+};
+
+/** Parse une date ISO (YYYY-MM-DD ou ISO complète) ; null si invalide. */
+function parseTime(v: unknown): number | null {
+  if (typeof v !== 'string' || !v.trim()) return null;
+  const t = Date.parse(v);
+  return Number.isNaN(t) ? null : t;
+}
+
+function pickMedia(avoid: Set<MediaType>): MediaType {
+  return FIX_MEDIA_PREFERENCE.find((m) => !avoid.has(m)) ?? 'nas';
+}
+
 /**
- * Évalue une stratégie selon la règle 3-2-1. Fonction pure, déterministe, O(N+E).
+ * Évalue une stratégie selon la règle 3-2-1 (+ restauration et fraîcheur des backups).
+ * Fonction pure, déterministe (hors `now` par défaut), O(N+E). `opts` est optionnel (rétrocompatible).
  */
-export function evaluate(doc: StrategyDoc): Evaluation {
+export function evaluate(doc: StrategyDoc, opts: EvaluateOptions = {}): Evaluation {
+  const statuses = opts.statuses;
+  const nowDate = opts.now instanceof Date && !Number.isNaN(opts.now.getTime()) ? opts.now : new Date();
+  const nowMs = nowDate.getTime();
+  const withOpts = opts.statuses !== undefined || opts.now !== undefined;
   const nodes = doc.nodes;
   const edges = doc.edges;
   const byId = new Map<string, BackupNode>();
@@ -94,12 +141,24 @@ export function evaluate(doc: StrategyDoc): Evaluation {
     // BFS ; cycles tolérés via `visited`
     const visited = new Set<string>([src.id]);
     const queue: string[] = [src.id];
+    const depth = new Map<string, number>([[src.id, 0]]);
     for (let i = 0; i < queue.length; i++) {
       for (const next of adj.get(queue[i]!) ?? []) {
         if (!visited.has(next)) {
           visited.add(next);
+          depth.set(next, depth.get(queue[i]!)! + 1);
           queue.push(next);
         }
+      }
+    }
+    // Fin de la chaîne la plus longue (premier noeud le plus profond) ; la source si aucun lien.
+    let tailId = src.id;
+    let tailDepth = 0;
+    for (const id of queue) {
+      const d = depth.get(id)!;
+      if (d > tailDepth) {
+        tailDepth = d;
+        tailId = id;
       }
     }
     const reachable: BackupNode[] = [];
@@ -136,6 +195,14 @@ export function evaluate(doc: StrategyDoc): Evaluation {
     });
 
     const concerned = [src.id, ...reachable.map((n) => n.id)];
+    const fixLocation: Location = ruleOne ? 'onsite' : 'offsite';
+    const fixFor = (mediaType: MediaType, location: Location): AlertFix => ({
+      kind: 'add-storage',
+      fromId: tailId,
+      label: `${MEDIA_FR[mediaType]} — copie de ${src.label}`.slice(0, 80),
+      mediaType,
+      location,
+    });
     if (!ruleThree) {
       const missing = 3 - copies;
       alerts.push({
@@ -145,6 +212,7 @@ export function evaluate(doc: StrategyDoc): Evaluation {
         message: `Source "${src.label}" : ${copies} ${plural(copies, 'copie', 'copies')} sur 3 requises — ajoutez ${missing} ${plural(missing, 'support', 'supports')} de sauvegarde.`,
         nodeIds: concerned,
         sourceId: src.id,
+        fix: fixFor(pickMedia(mediaSet), fixLocation),
       });
     }
     if (!ruleTwo) {
@@ -155,6 +223,7 @@ export function evaluate(doc: StrategyDoc): Evaluation {
         message: `Source "${src.label}" : 1 seul type de support sur 2 requis — ajoutez une copie sur un support de nature différente (ex. NAS, bande, cloud).`,
         nodeIds: concerned,
         sourceId: src.id,
+        fix: fixFor(pickMedia(mediaSet), fixLocation),
       });
     }
     if (!ruleOne) {
@@ -165,7 +234,49 @@ export function evaluate(doc: StrategyDoc): Evaluation {
         message: `Source "${src.label}" : aucune copie hors site — ajoutez un support distant (cloud, autre site).`,
         nodeIds: concerned,
         sourceId: src.id,
+        fix: fixFor('cloud', 'offsite'),
       });
+    }
+
+    // Test de restauration : un test sur la source ou sur n'importe quel support atteignable la couvre.
+    // On retient le plus récent des tests valides (dates invalides ignorées).
+    let latestTest: number | null = null;
+    for (const id of concerned) {
+      const t = parseTime(byId.get(id)?.lastRestoreTestAt);
+      if (t !== null && (latestTest === null || t > latestTest)) latestTest = t;
+    }
+    if (latestTest === null) {
+      if (withOpts) {
+        alerts.push({
+          id: `restore:${src.id}`,
+          rule: 'restore',
+          severity: 'info',
+          message: `Source "${src.label}" : restauration jamais testée — restaurez un fichier depuis une sauvegarde et notez la date du test.`,
+          nodeIds: concerned,
+          sourceId: src.id,
+        });
+      }
+    } else {
+      const days = Math.floor((nowMs - latestTest) / DAY_MS);
+      if (days > RESTORE_VERY_STALE_DAYS) {
+        alerts.push({
+          id: `restore:${src.id}`,
+          rule: 'restore',
+          severity: 'warning',
+          message: `Source "${src.label}" : dernier test de restauration il y a ${days} jours (plus d'un an) — une sauvegarde non testée n'est pas fiable, testez une restauration dès maintenant.`,
+          nodeIds: concerned,
+          sourceId: src.id,
+        });
+      } else if (days > RESTORE_STALE_DAYS) {
+        alerts.push({
+          id: `restore:${src.id}`,
+          rule: 'restore',
+          severity: 'warning',
+          message: `Source "${src.label}" : dernier test de restauration il y a ${days} jours (plus de 6 mois) — refaites un test de restauration.`,
+          nodeIds: concerned,
+          sourceId: src.id,
+        });
+      }
     }
     if (!hasOutgoing.has(src.id)) {
       alerts.push({
@@ -188,6 +299,7 @@ export function evaluate(doc: StrategyDoc): Evaluation {
           severity: 'warning',
           message: `Le support "${n.label}" n'est atteignable depuis aucune source — reliez-le ou supprimez-le.`,
           nodeIds: [n.id],
+          fix: { kind: 'connect', fromId: sources[0]!.id, toId: n.id },
         });
       }
     }
@@ -203,6 +315,44 @@ export function evaluate(doc: StrategyDoc): Evaluation {
           : `Le support "${n.label}" n'est pas chiffré — envisagez de le chiffrer.`,
         nodeIds: [n.id],
       });
+    }
+    if (statuses) {
+      for (const n of nodes) {
+        if (n.kind !== 'storage' || !reachedByAny.has(n.id)) continue;
+        const st = Object.prototype.hasOwnProperty.call(statuses, n.id) ? statuses[n.id] : undefined;
+        if (!st) continue;
+        if (st.lastStatus === 'failed') {
+          alerts.push({
+            id: `freshness:${n.id}`,
+            rule: 'freshness',
+            severity: 'error',
+            message: `Le dernier backup vers "${n.label}" a échoué${st.message ? ` (${st.message})` : ''} — consultez les journaux de l'outil de sauvegarde et relancez-le.`,
+            nodeIds: [n.id],
+          });
+          continue;
+        }
+        const limit = n.staleAfterHours;
+        if (typeof limit !== 'number' || !Number.isFinite(limit) || limit <= 0) continue;
+        const last = parseTime(st.lastSuccessAt);
+        if (last === null) {
+          alerts.push({
+            id: `freshness:${n.id}`,
+            rule: 'freshness',
+            severity: 'error',
+            message: `Aucun backup réussi reporté pour "${n.label}" (seuil : ${limit} h) — vérifiez que la sauvegarde s'exécute.`,
+            nodeIds: [n.id],
+          });
+        } else if (nowMs - last > limit * HOUR_MS) {
+          const hours = Math.floor((nowMs - last) / HOUR_MS);
+          alerts.push({
+            id: `freshness:${n.id}`,
+            rule: 'freshness',
+            severity: 'error',
+            message: `Aucun backup réussi depuis ${hours} h vers "${n.label}" (seuil : ${limit} h) — vérifiez la planification et les journaux.`,
+            nodeIds: [n.id],
+          });
+        }
+      }
     }
     if (!anyImmutable) {
       alerts.push({

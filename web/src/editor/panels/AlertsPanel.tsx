@@ -1,4 +1,4 @@
-import type { Alert, Evaluation, Severity } from '@backupviiz/shared';
+import type { Alert, AlertFix, Evaluation, Severity } from '@backupviiz/shared';
 import './panels.css';
 
 export interface AlertsPanelProps {
@@ -6,6 +6,7 @@ export interface AlertsPanelProps {
   onHoverAlert: (nodeIds: string[] | null) => void;
   onSelectNodes: (ids: string[]) => void;
   onFocusNode?: (id: string) => void;
+  onApplyFix?: (fix: AlertFix) => void;
 }
 
 const GROUPS: { severity: Severity; title: string }[] = [
@@ -23,7 +24,11 @@ function SevIcon({ severity }: { severity: Severity }) {
   return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></svg>;
 }
 
-export default function AlertsPanel({ evaluation, onHoverAlert, onSelectNodes, onFocusNode }: AlertsPanelProps) {
+function fixLabel(f: AlertFix): string {
+  return f.kind === 'add-storage' ? `ajouter « ${f.label} »` : 'relier le support à la source';
+}
+
+export default function AlertsPanel({ evaluation, onHoverAlert, onSelectNodes, onFocusNode, onApplyFix }: AlertsPanelProps) {
   const { alerts, status } = evaluation;
   const actionable = alerts.filter((a) => a.severity !== 'info');
   const showOk = status === 'compliant' && actionable.length === 0;
@@ -76,6 +81,11 @@ export default function AlertsPanel({ evaluation, onHoverAlert, onSelectNodes, o
                       {a.message}
                     </span>
                   </button>
+                  {a.fix && onApplyFix && (
+                    <button type="button" className="alerts__fix" onClick={() => onApplyFix(a.fix!)} aria-label={`Corriger : ${fixLabel(a.fix)}`} title={fixLabel(a.fix)}>
+                      Corriger
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

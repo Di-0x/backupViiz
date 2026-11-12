@@ -1,9 +1,14 @@
 import { create } from 'zustand';
 import { evaluate } from '@backupviiz/shared';
-import type { BackupEdge, BackupNode, Evaluation, Strategy, StrategyDoc } from '@backupviiz/shared';
+import type { AlertFix, BackupEdge, BackupNode, Evaluation, NodeStatus, Strategy, StrategyDoc } from '@backupviiz/shared';
 import type { PaletteItem } from './presets';
 
 const HISTORY_LIMIT = 100;
+
+type Statuses = Record<string, NodeStatus>;
+const evalWith = evaluate as (doc: StrategyDoc, opts?: { statuses?: Statuses; now?: Date }) => Evaluation;
+/** Évaluation locale tenant compte des statuts réels reportés. */
+const evaluateDoc = (doc: StrategyDoc, statuses: Statuses): Evaluation => evalWith(doc, { statuses });
 const COALESCE_MS = 900;
 
 export function uid(prefix: string): string {
@@ -64,6 +69,8 @@ export interface EditorState {
   description: string;
   doc: StrategyDoc;
   evaluation: Evaluation;
+  /** Statuts réels reportés (lecture seule, jamais renvoyés au PUT). */
+  statuses: Statuses;
   selectedNodeIds: string[];
   selectedEdgeIds: string[];
   highlightedNodeIds: string[];
@@ -86,6 +93,8 @@ export interface EditorState {
   updateNode: (id: string, patch: Partial<BackupNode>) => void;
   updateEdge: (id: string, patch: Partial<BackupEdge>) => void;
   connect: (from: string, to: string) => string | null;
+  /** Applique une correction proposée par une alerte (une seule étape d'annulation). Renvoie l'id du noeud créé ou null. */
+  applyFix: (fix: AlertFix) => string | null;
   reverseEdge: (id: string) => void;
   deleteMany: (nodeIds: string[], edgeIds: string[]) => void;
   deleteSelection: () => void;
@@ -111,7 +120,7 @@ export const useEditor = create<EditorState>((set, get) => {
     const past = coalesce ? s.past : [...s.past, { doc: s.doc }].slice(-HISTORY_LIMIT);
     set({
       doc: next,
-      evaluation: evaluate(next),
+      evaluation: evaluateDoc(next, s.statuses),
       past,
       future: [],
       rev: s.rev + 1,
@@ -134,6 +143,7 @@ export const useEditor = create<EditorState>((set, get) => {
     description: '',
     doc: EMPTY_DOC,
     evaluation: EMPTY_EVAL,
+    statuses: {},
     selectedNodeIds: [],
     selectedEdgeIds: [],
     highlightedNodeIds: [],
@@ -151,7 +161,8 @@ export const useEditor = create<EditorState>((set, get) => {
         name: s.name,
         description: s.description,
         doc: { nodes: s.nodes, edges: s.edges },
-        evaluation: evaluate({ nodes: s.nodes, edges: s.edges }),
+        evaluation: evaluateDoc({ nodes: s.nodes, edges: s.edges }, s.statuses ?? {}),
+        statuses: s.statuses ?? {},
         selectedNodeIds: [],
         selectedEdgeIds: [],
         highlightedNodeIds: [],
@@ -161,7 +172,7 @@ export const useEditor = create<EditorState>((set, get) => {
         rev: 0,
       }),
     reset: () =>
-      set({ id: null, name: '', doc: EMPTY_DOC, evaluation: EMPTY_EVAL, past: [], future: [], selectedNodeIds: [], selectedEdgeIds: [], rev: 0, highlightedNodeIds: [] }),
+      set({ id: null, name: '', doc: EMPTY_DOC, evaluation: EMPTY_EVAL, statuses: {}, past: [], future: [], selectedNodeIds: [], selectedEdgeIds: [], rev: 0, highlightedNodeIds: [] }),
 
     setName: (name) => set((s) => ({ name, rev: s.rev + 1 })),
 
@@ -219,6 +230,37 @@ export const useEditor = create<EditorState>((set, get) => {
       const edge: BackupEdge = { id: uid('e'), from, to };
       commit({ ...s.doc, edges: [...s.doc.edges, edge] }, undefined, { selectedNodeIds: [], selectedEdgeIds: [edge.id] });
       return edge.id;
+    },
+
+    applyFix: (fix) => {
+      const s = get();
+      const from = s.doc.nodes.find((n) => n.id === fix.fromId);
+      if (!from) return null;
+      if (fix.kind === 'connect') {
+        const to = s.doc.nodes.find((n) => n.id === fix.toId);
+        if (!to || fix.fromId === fix.toId || s.doc.edges.some((e) => e.from === fix.fromId && e.to === fix.toId)) return null;
+        const edge: BackupEdge = { id: uid('e'), from: fix.fromId, to: fix.toId };
+        commit({ ...s.doc, edges: [...s.doc.edges, edge] }, undefined, { selectedNodeIds: [], selectedEdgeIds: [edge.id] });
+        return null;
+      }
+      let x = Math.round((from.position.x + 260) / 20) * 20;
+      let y = Math.round(from.position.y / 20) * 20;
+      while (s.doc.nodes.some((n) => Math.abs(n.position.x - x) < 40 && Math.abs(n.position.y - y) < 40)) y += 140;
+      const node: BackupNode = {
+        id: uid('n'),
+        kind: 'storage',
+        label: fix.label.slice(0, 80),
+        mediaType: fix.mediaType,
+        location: fix.location,
+        position: { x, y },
+      };
+      const edge: BackupEdge = { id: uid('e'), from: from.id, to: node.id };
+      commit({ nodes: [...s.doc.nodes, node], edges: [...s.doc.edges, edge] }, undefined, {
+        selectedNodeIds: [node.id],
+        selectedEdgeIds: [],
+        focusRequest: { ids: [node.id], n: (s.focusRequest?.n ?? 0) + 1 },
+      });
+      return node.id;
     },
 
     reverseEdge: (id) => {
@@ -282,7 +324,7 @@ export const useEditor = create<EditorState>((set, get) => {
       if (!prev) return;
       set({
         doc: prev.doc,
-        evaluation: evaluate(prev.doc),
+        evaluation: evaluateDoc(prev.doc, s.statuses),
         past: s.past.slice(0, -1),
         future: [{ doc: s.doc }, ...s.future].slice(0, HISTORY_LIMIT),
         rev: s.rev + 1,
@@ -296,7 +338,7 @@ export const useEditor = create<EditorState>((set, get) => {
       if (!next) return;
       set({
         doc: next.doc,
-        evaluation: evaluate(next.doc),
+        evaluation: evaluateDoc(next.doc, s.statuses),
         past: [...s.past, { doc: s.doc }].slice(-HISTORY_LIMIT),
         future: s.future.slice(1),
         rev: s.rev + 1,

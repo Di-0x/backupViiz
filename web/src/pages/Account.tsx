@@ -4,6 +4,8 @@ import type { PasskeyInfo } from '@backupviiz/shared';
 import { api, ApiRequestError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { addPasskey, passkeyErrorMessage, passkeysSupported } from '../auth/passkey';
+import { ApiTokens } from '../account/ApiTokens';
+import { ResticSnippet } from '../account/ResticSnippet';
 import { AppHeader } from '../components/AppHeader';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Skeleton } from '../components/Skeleton';
@@ -23,6 +25,7 @@ export default function Account() {
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [toDelete, setToDelete] = useState<PasskeyInfo | null>(null);
+  const [newToken, setNewToken] = useState<string | null>(null);
 
   const load = useCallback(() => {
     api.passkey.list().then(setPasskeys).catch(() => setPasskeys([]));
@@ -147,6 +150,9 @@ export default function Account() {
             <button type="submit" className="btn btn-primary" disabled={busy}>Enregistrer</button>
           </form>
         </section>
+
+        <ApiTokens onSecret={setNewToken} />
+        <ResticSnippet token={newToken} />
 
         <section className="card panel" aria-labelledby="out-title">
           <h2 id="out-title">Session</h2>

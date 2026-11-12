@@ -30,6 +30,11 @@ function edge(id: string, from: string, to: string, method?: string, schedule?: 
   return e;
 }
 
+/** Date YYYY-MM-DD située `daysAgo` jours avant aujourd'hui (UTC). */
+function recentDate(daysAgo: number): string {
+  return new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10);
+}
+
 export const TEMPLATES: StrategyTemplate[] = [
   {
     id: 'empty',
@@ -59,11 +64,24 @@ export const TEMPLATES: StrategyTemplate[] = [
     description: 'Serveur de production, NAS local, bande hebdomadaire et copie cloud immuable.',
     doc: {
       nodes: [
-        node('srv', 'source', 'Serveur de production', 'ssd', 'onsite', 0, 1),
-        node('nas', 'storage', 'NAS de sauvegarde', 'nas', 'onsite', 1, 0),
-        node('tape', 'storage', 'Bandes LTO (coffre externe)', 'tape', 'offsite', 2, 0),
+        node('srv', 'source', 'Serveur de production', 'ssd', 'onsite', 0, 1, {
+          retention: '7 quotidiens, 4 hebdomadaires, 12 mensuels',
+        }),
+        node('nas', 'storage', 'NAS de sauvegarde', 'nas', 'onsite', 1, 0, {
+          retention: '14 quotidiens, 8 hebdomadaires',
+          staleAfterHours: 36,
+          lastRestoreTestAt: recentDate(30),
+        }),
+        node('tape', 'storage', 'Bandes LTO (coffre externe)', 'tape', 'offsite', 2, 0, {
+          retention: '12 hebdomadaires, 7 annuelles',
+          staleAfterHours: 216,
+          lastRestoreTestAt: recentDate(400),
+        }),
         node('cloud', 'storage', 'Cloud immuable (WORM)', 'object-storage', 'offsite', 2, 2, {
           immutable: true,
+          encrypted: true,
+          retention: '30 quotidiens, 12 mensuels (verrou 30 jours)',
+          staleAfterHours: 36,
         }),
       ],
       edges: [

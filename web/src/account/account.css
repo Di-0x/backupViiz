@@ -1,0 +1,9 @@
+.tok-list { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; }
+.tok-list li { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); }
+.tok-list .muted { display: block; font-size: .85rem; }
+.tok-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; max-width: 520px; }
+.tok-form .field { flex: 1 1 220px; margin-bottom: 0; }
+.tok-secret { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.tok-secret code { flex: 1 1 240px; overflow-wrap: anywhere; user-select: all; }
+.code-block { margin: 8px 0 0; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; font-size: .85rem; white-space: pre; }
+.code-block:focus-visible { outline: 2px solid var(--primary, currentColor); outline-offset: 2px; }

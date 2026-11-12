@@ -1,0 +1,76 @@
+/* Rapport : toujours en thème clair (écran et impression), indépendant du thème de l'app. */
+.rp {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --text: #14181f;
+  --muted: #566070;
+  --border: #d5dae3;
+  --accent: #2557d6;
+  --ok: #17703a;
+  --warn: #8a5a00;
+  --err: #b42318;
+  --ok-bg: #e3f6ea;
+  --warn-bg: #fff2d6;
+  --err-bg: #fde8e6;
+  color-scheme: light;
+  background: #ffffff;
+  color: var(--text);
+}
+body:has(.rp) { background: #e9ecf1; }
+.rp-page { max-width: 1100px; margin: 0 auto; padding: 24px 28px 48px; font-family: var(--font); font-size: 14px; line-height: 1.5; }
+@media (min-width: 1160px) { .rp-page { margin: 16px auto; box-shadow: 0 1px 4px rgb(16 24 40 / 15%); } }
+.rp h1 { font-size: 26px; margin: 2px 0 6px; }
+.rp h2 { font-size: 18px; margin: 0 0 12px; padding-bottom: 4px; border-bottom: 2px solid var(--border); }
+.rp h3 { font-size: 14px; margin: 14px 0 6px; }
+.rp-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 20px; }
+.rp-spacer { flex: 1; }
+.rp-btn { font: inherit; padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); cursor: pointer; text-decoration: none; }
+.rp-btn:hover { background: var(--surface-2); }
+.rp-btn:focus-visible { outline: 3px solid #1a47b8; outline-offset: 2px; }
+.rp-btn--primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rp-btn--primary:hover { background: #1a47b8; }
+.rp-btn--ghost { border-color: transparent; }
+.rp-eyebrow { margin: 0; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-size: 12px; }
+.rp-desc { margin: 0 0 10px; color: var(--muted); }
+.rp-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; color: var(--muted); font-size: 13px; }
+.rp-header { margin-bottom: 20px; }
+.rp-section { margin: 0 0 26px; }
+.rp-section > .cbar { margin-bottom: 12px; }
+.rp-muted, .rp-sub { color: var(--muted); }
+.rp-sub { display: block; font-size: 11.5px; font-weight: 400; }
+.rp-error { color: var(--err); }
+.rp-ok { color: var(--ok); font-weight: 600; }
+.rp-diagram { display: block; margin: 0 auto; border: 1px solid var(--border); border-radius: 8px; height: auto; }
+.rp-tablewrap { overflow-x: auto; }
+.rp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.rp-table th, .rp-table td { border: 1px solid var(--border); padding: 5px 7px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.rp-table thead th { background: var(--surface-2); font-weight: 600; }
+.rp-table tbody th { font-weight: 600; }
+.rp-table td.is-ko { color: var(--err); font-weight: 600; }
+.rp-alerts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rp-alert { border: 1px solid var(--border); border-left-width: 5px; border-radius: 6px; padding: 8px 12px; }
+.rp-alert--error { border-left-color: var(--err); background: var(--err-bg); }
+.rp-alert--warning { border-left-color: var(--warn); background: var(--warn-bg); }
+.rp-alert--info { border-left-color: var(--accent); background: #eef3ff; }
+.rp-alert p { margin: 0; }
+.rp-alert__msg { font-weight: 600; }
+.rp-alert__reco { margin-top: 4px; }
+.rp-sev--error { color: var(--err); } .rp-sev--warning { color: var(--warn); } .rp-sev--info { color: var(--accent); }
+
+@page { size: A4; margin: 14mm; }
+@media print {
+  html, body, body:has(.rp) { background: #fff !important; }
+  .no-print { display: none !important; }
+  .rp-page { max-width: none; margin: 0; padding: 0; box-shadow: none; font-size: 10.5pt; }
+  .rp { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rp h1 { font-size: 20pt; }
+  .rp h2, .rp h3 { break-after: avoid; }
+  .rp-section { break-inside: auto; }
+  .rp-section--diagram, .rp-alert, .sreport__card, .rp-table tr { break-inside: avoid; }
+  .rp-break { break-before: page; }
+  .rp-table { font-size: 8.5pt; }
+  .rp-table thead { display: table-header-group; }
+  .rp-diagram { max-height: 170mm; }
+  a { color: inherit; text-decoration: none; }
+}

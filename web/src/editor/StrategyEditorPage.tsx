@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ReactFlowProvider } from '@xyflow/react';
+import type { AlertFix, Strategy } from '@backupviiz/shared';
 import { api } from '../api/client';
 import { AlertsPanel, Inspector, SourceReport } from './panels';
 import Canvas from './Canvas';
 import Palette from './Palette';
 import Toolbar from './Toolbar';
+import VersionsDrawer from './history/VersionsDrawer';
+import HelpDialog, { shouldAutoOpenHelp } from './help/HelpDialog';
 import { exportPng, exportSvg } from './exportImage';
 import { SOURCE_ITEMS, STORAGE_ITEMS } from './presets';
 import { useEditor } from './store';
@@ -26,6 +29,9 @@ export default function StrategyEditorPage() {
   const [tab, setTab] = useState<Tab>('alerts');
   const [sideOpen, setSideOpen] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const helpChecked = useRef(false);
 
   const autosave = useAutosave(load.state === 'ready');
   const { markLoaded } = autosave;
@@ -50,6 +56,13 @@ export default function StrategyEditorPage() {
     };
   }, [id, attempt, markLoaded]);
 
+  // Aide 3-2-1 : ouverture automatique à la première visite de l'éditeur.
+  useEffect(() => {
+    if (load.state !== 'ready' || helpChecked.current) return;
+    helpChecked.current = true;
+    if (shouldAutoOpenHelp()) setHelpOpen(true);
+  }, [load.state]);
+
   useEffect(() => {
     document.title = 'Éditeur — BackupViiz';
   }, []);
@@ -57,6 +70,7 @@ export default function StrategyEditorPage() {
   const name = useEditor((s) => s.name);
   const doc = useEditor((s) => s.doc);
   const evaluation = useEditor((s) => s.evaluation);
+  const statuses = useEditor((s) => s.statuses);
   const selNodes = useEditor((s) => s.selectedNodeIds);
   const selEdges = useEditor((s) => s.selectedEdgeIds);
   const canUndo = useEditor((s) => s.past.length > 0);
@@ -109,6 +123,7 @@ export default function StrategyEditorPage() {
   const onDelete = useCallback((kind: 'node' | 'edge', did: string) => (kind === 'node' ? st().deleteMany([did], []) : st().deleteMany([], [did])), [st]);
   const onHoverAlert = useCallback((ids: string[] | null) => st().highlight(ids), [st]);
   const onSelectNodes = useCallback((ids: string[]) => (st().select(ids), st().requestFocus(ids)), [st]);
+  const onApplyFix = useCallback((fix: AlertFix) => void st().applyFix(fix), [st]);
   const onFocusNode = useCallback((nid: string) => (st().select([nid]), st().requestFocus([nid])), [st]);
 
   const onExport = useCallback(
@@ -166,6 +181,9 @@ export default function StrategyEditorPage() {
           onRedo={() => st().redo()}
           onLayout={() => st().autoLayout()}
           onExport={onExport}
+          strategyId={id}
+          onHelp={() => setHelpOpen(true)}
+          onHistory={() => setHistoryOpen(true)}
           evaluation={evaluation}
           alertCount={alertCount}
           alertsOpen={sideOpen && tab === 'alerts'}
@@ -211,6 +229,7 @@ export default function StrategyEditorPage() {
                     onChangeNode={onChangeNode}
                     onChangeEdge={onChangeEdge}
                     onDelete={onDelete}
+                    status={selectedNode ? statuses[selectedNode.id] : undefined}
                   />
                 ) : multi ? (
                   <div className="bv-hint">
@@ -228,12 +247,25 @@ export default function StrategyEditorPage() {
                   <p className="bv-hint">Sélectionnez un support, une source ou un lien pour modifier ses propriétés.</p>
                 ))}
               {tab === 'alerts' && (
-                <AlertsPanel evaluation={evaluation} onHoverAlert={onHoverAlert} onSelectNodes={onSelectNodes} onFocusNode={onFocusNode} />
+                <AlertsPanel evaluation={evaluation} onHoverAlert={onHoverAlert} onSelectNodes={onSelectNodes} onFocusNode={onFocusNode} onApplyFix={onApplyFix} />
               )}
               {tab === 'report' && <SourceReport evaluation={evaluation} nodes={doc.nodes} />}
             </div>
           </aside>
         </div>
+        <HelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
+        {id && (
+          <VersionsDrawer
+            strategyId={id}
+            open={historyOpen}
+            onClose={() => setHistoryOpen(false)}
+            onRestored={(s: Strategy) => {
+              useEditor.getState().load(s);
+              markLoaded();
+              setHistoryOpen(false);
+            }}
+          />
+        )}
       </div>
     </ReactFlowProvider>
   );

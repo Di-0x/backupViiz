@@ -1,8 +1,8 @@
 import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
-import type { BackupNode, Severity } from '@backupviiz/shared';
-import { LOCATION_LABEL, MEDIA_META } from './panels';
+import type { BackupNode, NodeStatus, Severity } from '@backupviiz/shared';
+import { LOCATION_LABEL, MEDIA_META, describeStatus } from './panels';
 
 export interface BackupNodeData extends Record<string, unknown> {
   node: BackupNode;
@@ -11,6 +11,8 @@ export interface BackupNodeData extends Record<string, unknown> {
   /** Pire sévérité des alertes (hors info) touchant ce nœud. */
   severity?: Severity;
   highlighted?: boolean;
+  /** Statut réel reporté (pastille d'état). */
+  status?: NodeStatus;
 }
 export type BackupFlowNode = Node<BackupNodeData, 'source' | 'storage'>;
 
@@ -44,6 +46,14 @@ function NodeCard({ data, selected, kind }: { data: BackupNodeData; selected?: b
           {n.encrypted === true && <span className="bv-pill bv-pill--enc">🔒 Chiffré</span>}
           {n.encrypted === false && <span className="bv-pill bv-pill--noenc">Non chiffré</span>}
         </div>
+        {data.status && (() => {
+          const v = describeStatus(data.status, n.staleAfterHours);
+          return (
+            <div className={`bv-status bv-status--${v.level}`} title={data.status.message}>
+              <span aria-hidden="true">{v.level === 'ok' ? '●' : v.level === 'failed' ? '✕' : '▲'}</span> {v.text}
+            </div>
+          );
+        })()}
         {(n.hostname || n.ip) && (
           <div className="bv-node__host" title={[n.hostname, n.ip].filter(Boolean).join(' · ')}>
             {[n.hostname, n.ip].filter(Boolean).join(' · ')}

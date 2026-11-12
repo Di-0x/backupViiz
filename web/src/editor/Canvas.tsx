@@ -38,6 +38,7 @@ const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(pre
 export default function Canvas() {
   const doc = useEditor((s) => s.doc);
   const evaluation = useEditor((s) => s.evaluation);
+  const statuses = useEditor((s) => s.statuses);
   const selectedNodeIds = useEditor((s) => s.selectedNodeIds);
   const selectedEdgeIds = useEditor((s) => s.selectedEdgeIds);
   const highlighted = useEditor((s) => s.highlightedNodeIds);
@@ -104,10 +105,10 @@ export default function Canvas() {
           n.location === 'offsite' ? 'hors site' : 'sur site'
         }${severities.get(n.id) === 'error' ? ', non conforme' : ''}`,
         measured: d,
-        data: { node: n, copy: copyNumbers.get(n.id), severity: severities.get(n.id), highlighted: hl.has(n.id) },
+        data: { node: n, copy: copyNumbers.get(n.id), severity: severities.get(n.id), highlighted: hl.has(n.id), status: statuses[n.id] },
       };
     });
-  }, [doc.nodes, selectedNodeIds, highlighted, dims, copyNumbers, severities]);
+  }, [doc.nodes, selectedNodeIds, highlighted, dims, copyNumbers, severities, statuses]);
 
   const edges = useMemo<BackupFlowEdge[]>(() => {
     const ids = new Set(doc.nodes.map((n) => n.id));

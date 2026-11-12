@@ -11,6 +11,8 @@ import { sessionPlugin } from './auth/session';
 import authRoutes from './routes/auth';
 import passkeyRoutes from './routes/passkey';
 import strategyRoutes from './routes/strategies';
+import tokenRoutes from './routes/tokens';
+import ingestRoutes from './routes/ingest';
 
 export interface BuildAppOptions {
   /** Remplace le plugin d'auth (tests uniquement) : doit décorer `requireAuth` et `request.user`. */
@@ -60,6 +62,8 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(passkeyRoutes, { prefix: '/api/auth/passkey' });
   await app.register(strategyRoutes, { prefix: '/api/strategies' });
+  await app.register(tokenRoutes, { prefix: '/api/tokens' });
+  await app.register(ingestRoutes, { prefix: '/api/ingest' });
 
   // SPA statique (build web) — WEB_DIST par défaut ../web/dist relatif au cwd ou /app/public en Docker
   const webDist = resolve(process.env.WEB_DIST ?? 'public');

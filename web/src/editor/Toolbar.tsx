@@ -19,6 +19,9 @@ export interface ToolbarProps {
   alertCount: number;
   alertsOpen: boolean;
   onToggleAlerts: () => void;
+  strategyId?: string;
+  onHelp: () => void;
+  onHistory: () => void;
 }
 
 const I = ({ d }: { d: string }) => (
@@ -84,6 +87,17 @@ export default function Toolbar(p: ToolbarProps) {
       <div className="bv-toolbar__compliance">
         <ComplianceBar evaluation={p.evaluation} />
       </div>
+      <button type="button" className="bv-btn" onClick={p.onHistory} title="Historique des versions">
+        Historique
+      </button>
+      {p.strategyId && (
+        <Link className="bv-btn" to={`/s/${p.strategyId}/report`} target="_blank" rel="noopener noreferrer" title="Rapport imprimable (nouvel onglet)">
+          Rapport<span className="sr-only"> (s'ouvre dans un nouvel onglet)</span>
+        </Link>
+      )}
+      <button type="button" className="bv-btn" onClick={p.onHelp} title="Aide : la règle 3-2-1">
+        <span aria-hidden="true">?</span> Aide
+      </button>
       <button
         type="button"
         className={`bv-btn bv-btn--alerts${p.alertCount ? ' has-alerts' : ''}`}
