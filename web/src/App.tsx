@@ -8,6 +8,7 @@ import Login from './pages/Login';
 // Pages non critiques et éditeur (React Flow) : chargés à la demande.
 const Register = lazy(() => import('./pages/Register'));
 const Account = lazy(() => import('./pages/Account'));
+const ReportPage = lazy(() => import('./report/ReportPage'));
 const StrategyEditorPage = lazy(() => import('./editor/StrategyEditorPage'));
 
 function PageFallback() {
@@ -39,6 +40,7 @@ export function App() {
           <Route path="/register" element={<RedirectIfAuthed><Register /></RedirectIfAuthed>} />
           <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
           <Route path="/s/:id" element={<RequireAuth><StrategyEditorPage /></RequireAuth>} />
+          <Route path="/s/:id/report" element={<RequireAuth><ReportPage /></RequireAuth>} />
           <Route path="/account" element={<RequireAuth><Account /></RequireAuth>} />
           <Route path="*" element={<NotFound />} />
         </Routes>

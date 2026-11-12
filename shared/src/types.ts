@@ -29,6 +29,12 @@ export interface BackupNode {
   data?: string;
   /** Fréquence de sauvegarde / réplication (ex: « Quotidien 02:00 »). */
   frequency?: string;
+  /** Politique de rétention (ex: « 7 quotidiens, 4 hebdo, 12 mensuels »). */
+  retention?: string;
+  /** Date (YYYY-MM-DD) du dernier test de restauration réussi. */
+  lastRestoreTestAt?: string;
+  /** Alerte si aucun backup réussi n'a été reporté depuis N heures (support/cible uniquement). */
+  staleAfterHours?: number;
   notes?: string;
   position: { x: number; y: number };
 }
@@ -50,8 +56,25 @@ export interface StrategyDoc {
   edges: BackupEdge[];
 }
 
-export type RuleId = '3' | '2' | '1' | 'structure' | 'immutable' | 'encryption';
+export type RuleId = '3' | '2' | '1' | 'structure' | 'immutable' | 'encryption' | 'restore' | 'freshness';
 export type Severity = 'error' | 'warning' | 'info';
+
+/** Statut réel reporté par un outil de backup (restic…) pour un noeud. Stocké côté serveur, hors `StrategyDoc`. */
+export interface NodeStatus {
+  tool: string; // 'restic'
+  /** Dernier backup réussi (ISO) — issu du snapshot le plus récent si status 'ok'. */
+  lastSuccessAt: string | null;
+  lastStatus: 'ok' | 'failed';
+  snapshotCount?: number;
+  sizeBytes?: number;
+  message?: string;
+  reportedAt: string; // ISO
+}
+
+/** Correction proposée en un clic ; appliquée côté éditeur (undo possible). */
+export type AlertFix =
+  | { kind: 'add-storage'; fromId: string; label: string; mediaType: MediaType; location: Location }
+  | { kind: 'connect'; fromId: string; toId: string };
 
 export interface Alert {
   id: string;
@@ -63,6 +86,8 @@ export interface Alert {
   nodeIds: string[];
   /** Source concernée (undefined = global). */
   sourceId?: string;
+  /** Correction automatique proposée (si applicable). */
+  fix?: AlertFix;
 }
 
 export interface SourceEvaluation {
@@ -92,7 +117,9 @@ export interface Strategy extends StrategyDoc {
   description: string;
   createdAt: string; // ISO
   updatedAt: string; // ISO
-  evaluation: Evaluation; // calculé serveur
+  evaluation: Evaluation; // calculé serveur (statuses pris en compte)
+  /** Statuts réels reportés, par id de noeud. */
+  statuses: Record<string, NodeStatus>;
 }
 
 export interface StrategySummary {
@@ -112,6 +139,23 @@ export interface User {
   username: string;
   hasPassword: boolean;
   passkeyCount: number;
+}
+
+export interface StrategyVersionSummary {
+  id: string;
+  createdAt: string;
+  name: string;
+  nodeCount: number;
+  edgeCount: number;
+  /** 'auto' (enregistrement) | 'restore' (avant restauration) */
+  reason: 'auto' | 'restore';
+}
+
+export interface ApiTokenInfo {
+  id: string;
+  name: string;
+  createdAt: string;
+  lastUsedAt: string | null;
 }
 
 export interface PasskeyInfo {

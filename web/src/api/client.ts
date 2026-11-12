@@ -1,4 +1,4 @@
-import type { ApiError, PasskeyInfo, Strategy, StrategyDoc, StrategySummary, User } from '@backupviiz/shared';
+import type { ApiError, ApiTokenInfo, PasskeyInfo, StrategyVersionSummary, Strategy, StrategyDoc, StrategySummary, User } from '@backupviiz/shared';
 
 /** Erreur API typée (parse `{ error: { code, message, fields? } }`). */
 export class ApiRequestError extends Error {
@@ -89,6 +89,12 @@ export const api = {
     rename: (id: string, name: string) => request<PasskeyInfo>('PATCH', `/api/auth/passkey/${encodeURIComponent(id)}`, { name }),
     remove: (id: string) => request<void>('DELETE', `/api/auth/passkey/${encodeURIComponent(id)}`),
   },
+  tokens: {
+    list: () => get<ApiTokenInfo[]>('/api/tokens'),
+    /** Le jeton en clair n'est renvoyé qu'à la création. */
+    create: (name: string) => post<ApiTokenInfo & { token: string }>('/api/tokens', { name }),
+    remove: (id: string) => request<void>('DELETE', `/api/tokens/${encodeURIComponent(id)}`),
+  },
   strategies: {
     list: () => get<StrategySummary[]>('/api/strategies'),
     get: (id: string) => get<Strategy>(`/api/strategies/${encodeURIComponent(id)}`),
@@ -98,6 +104,11 @@ export const api = {
     remove: (id: string) => request<void>('DELETE', `/api/strategies/${encodeURIComponent(id)}`),
     duplicate: (id: string) => post<Strategy>(`/api/strategies/${encodeURIComponent(id)}/duplicate`),
     export: (id: string) => get<ExportFile>(`/api/strategies/${encodeURIComponent(id)}/export`),
+    versions: (id: string) => get<StrategyVersionSummary[]>(`/api/strategies/${encodeURIComponent(id)}/versions`),
+    version: (id: string, vid: string) =>
+      get<{ id: string; createdAt: string; name: string; description: string; doc: StrategyDoc }>(`/api/strategies/${encodeURIComponent(id)}/versions/${encodeURIComponent(vid)}`),
+    restoreVersion: (id: string, vid: string) =>
+      post<Strategy>(`/api/strategies/${encodeURIComponent(id)}/versions/${encodeURIComponent(vid)}/restore`),
     import: (input: { name?: string; description?: string; doc: StrategyDoc }) => post<Strategy>('/api/strategies/import', input),
   },
 };

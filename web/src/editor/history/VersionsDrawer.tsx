@@ -1,0 +1,1 @@
+export default function VersionsDrawer(_p: { strategyId: string; open: boolean; onClose: () => void; onRestored: (s: import('@backupviiz/shared').Strategy) => void }) { return null; } // STUB agent history
