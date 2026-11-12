@@ -1,0 +1,9 @@
+.help { border: 1px solid var(--border, #d1d5db); border-radius: 12px; padding: 0; max-width: min(560px, calc(100vw - 24px)); width: 100%; background: var(--surface, #fff); color: var(--text, #111827); }
+.help::backdrop { background: rgb(0 0 0 / .5); }
+.help__card { padding: 20px; display: flex; flex-direction: column; gap: 12px; font-size: 14px; line-height: 1.5; }
+.help__title { margin: 0; font-size: 20px; }
+.help__svg { width: 100%; height: auto; color: var(--text, #111827); }
+.help__list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.help__next, .help__tip { margin: 0; }
+.help__tip { color: var(--muted, #6b7280); }
+.help__actions { display: flex; justify-content: flex-end; }

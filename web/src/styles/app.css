@@ -1,0 +1,56 @@
+/* En-tête */
+.app-header { display: flex; align-items: center; gap: 16px; padding: 8px 16px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 20; flex-wrap: wrap; }
+.app-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--text); text-decoration: none; }
+.app-header-slot { flex: 1; min-width: 0; }
+.app-nav { display: flex; gap: 4px; margin-left: auto; }
+.app-nav a { padding: 8px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 600; }
+.app-nav a:hover { background: var(--surface-2); }
+.app-nav a[aria-current='page'] { color: var(--text); background: var(--surface-2); }
+
+/* Dashboard */
+.page-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.page-head h1 { margin: 0; }
+.page-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 16px; }
+.strategy-card { padding: 16px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.strategy-card h2 { margin: 0; font-size: 1.1rem; overflow-wrap: anywhere; }
+.strategy-card h2 a { color: var(--text); text-decoration: none; }
+.strategy-card h2 a:hover { text-decoration: underline; }
+.strategy-card .desc, .strategy-card .meta { margin: 0; font-size: .9rem; }
+.card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 8px; }
+.tpl { text-align: left; display: flex; flex-direction: column; gap: 4px; padding: 14px; font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; }
+.tpl:hover:not(:disabled) { border-color: var(--accent); }
+.empty { text-align: center; padding: 40px 20px; }
+.suggest { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+
+/* Skeleton */
+.skeleton { display: block; background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 37%, var(--surface-2) 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; }
+@keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+/* Toasts */
+.toasts { position: fixed; bottom: 16px; left: 16px; right: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 2000; pointer-events: none; }
+.toast { pointer-events: auto; display: flex; align-items: center; gap: 8px; max-width: 560px; width: 100%; padding: 10px 12px 10px 16px; background: var(--text); color: var(--bg); border-radius: var(--radius); box-shadow: var(--shadow); animation: toast-in .2s ease; }
+.toast .btn { color: var(--bg); border-color: color-mix(in srgb, var(--bg) 50%, transparent); background: transparent; }
+.toast-msg { flex: 1; overflow-wrap: anywhere; }
+.toast-error { border-left: 4px solid var(--err); }
+.toast-success { border-left: 4px solid var(--ok); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Dialogue */
+.dialog { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); padding: 0; max-width: min(440px, calc(100vw - 32px)); width: 100%; box-shadow: var(--shadow); }
+.dialog::backdrop { background: rgb(0 0 0 / 50%); }
+.dialog-body { padding: 20px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+
+/* Compte */
+.pk-list { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; }
+.pk-list li { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); }
+.pk-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: .95rem; }
+.pk-info .muted { font-size: .85rem; }
+.pk-edit { display: flex; gap: 6px; }
+.pk-actions { display: flex; gap: 6px; }
+
+@media (max-width: 480px) {
+  .app-nav { margin-left: 0; width: 100%; }
+  .btn { min-height: 44px; }
+}

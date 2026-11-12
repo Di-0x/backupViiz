@@ -84,3 +84,49 @@ Vitest. `shared` : couverture forte du moteur (cas limites : cycles, multi-sourc
 | editor-canvas | `web/src/editor/*.{ts,tsx,css}` (hors `panels/`) |
 | editor-panels | `web/src/editor/panels/**` |
 | devops | `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `.env.example`, `README.md`, `.github/**` |
+
+---
+# Itération 2 — Rétention/restauration, statut réel (restic), rapport, aide 3-2-1, historique
+
+Contrat de types : `shared/src/types.ts` (déjà mis à jour : `BackupNode.{retention,lastRestoreTestAt,staleAfterHours}`, `NodeStatus`, `AlertFix`, `Alert.fix`, `Strategy.statuses`, `StrategyVersionSummary`, `ApiTokenInfo`, RuleId `restore`|`freshness`). Client API : `web/src/api/client.ts` déjà étendu (`api.tokens.*`, `api.strategies.versions/version/restoreVersion`). Route `/s/:id/report` + stubs `web/src/report/ReportPage.tsx` et `web/src/editor/history/VersionsDrawer.tsx` déjà câblés. N'édite pas ces fichiers de contrat (hors ton périmètre ci-dessous) ; signale tout besoin.
+
+## Moteur — `evaluate(doc: StrategyDoc, opts?: { statuses?: Record<string, NodeStatus>; now?: Date }): Evaluation`
+- Rétrocompatible (opts optionnel). Nouvelles alertes (ids déterministes, messages FR actionnables) sur les noeuds `storage` atteignables (et sources pour restore) :
+  - `restore` : aucun `lastRestoreTestAt` sur une **source** → `info` « jamais testée » ; test > 180 j → `warning` ; > 365 j → `warning` plus fort (même id, message adapté). Date invalide ignorée. Un seul test de restauration sur n'importe quel noeud atteignable de la source suffit à la couvrir (cherche source + supports atteignables) — décris ta règle.
+  - `freshness` : si `statuses[nodeId]` existe : `lastStatus==='failed'` → `error` ; sinon si `staleAfterHours` défini et `now - lastSuccessAt > staleAfterHours` (ou lastSuccessAt null) → `error` « aucun backup réussi depuis X h ». Sans status reporté : pas d'alerte (outil non branché). 
+  - `fix` : règle 3/2/1 violée → `add-storage` minimal et pertinent (1: cloud offsite ; 2: type différent des types présents ; 3: type non utilisé), `fromId` = dernier noeud de la chaîne la plus longue (ou la source) ; support orphelin → `connect` depuis la première source. Pas de fix pour les autres.
+- Les `status` de compliance tiennent compte de ces alertes (error → violation).
+- Templates : ajouter des valeurs réalistes (retention, lastRestoreTestAt récent/ancien, staleAfterHours) dans « PME ».
+- `validate.ts` : `retention` ≤ 200, `lastRestoreTestAt` regex `^\d{4}-\d{2}-\d{2}$`, `staleAfterHours` entier 1–8760.
+
+## Serveur
+Tables (créées dans db.ts, idempotent) :
+`node_status(strategy_id, node_id, tool, last_success_at, last_status, snapshot_count, size_bytes, message, reported_at, PRIMARY KEY(strategy_id,node_id))` (FK strategies ON DELETE CASCADE) ;
+`api_tokens(id, user_id, name, token_hash, created_at, last_used_at)` (token `bvk_` + 32 o base64url, stocké sha256, renvoyé 1 fois) ;
+`strategy_versions(id, strategy_id, user_id, name, description, doc, reason, created_at)` (FK CASCADE).
+- `GET /api/strategies/:id` et PUT/POST/duplicate/import renvoient `statuses` et une `evaluation` calculée avec `statuses`. `GET /` (summaries) idem pour status/compteurs.
+- **Versions** : à chaque `PUT` qui modifie `doc`, avant écriture, snapshot de l'état précédent (reason `auto`) **sauf** si le dernier snapshot a < 2 min (coalescence) ; conserver 50 versions max/stratégie (purge des plus anciennes). `GET /:id/versions` (desc) · `GET /:id/versions/:vid` · `POST /:id/versions/:vid/restore` (snapshot `restore` de l'état courant, puis applique ; renvoie `Strategy`). Scoping user strict.
+- **Jetons API** : `GET/POST /api/tokens`, `DELETE /api/tokens/:id` (session requise ; max 20/user).
+- **Ingestion** (auth `Authorization: Bearer bvk_…`, pas de cookie/CSRF) : `POST /api/ingest/:strategyId/:nodeId` body `{ tool?: 'restic', status: 'ok'|'failed', snapshots?: ResticSnapshot[], message?: string, sizeBytes?: number }` où `ResticSnapshot` = `{ time: string; ... }` (sortie de `restic snapshots --json`, ne retenir que `time`, longueur du tableau, ignorer le reste, limiter la taille body à 2 MB). `lastSuccessAt` = max(snapshots[].time) si status ok (sinon conserve l'ancien lastSuccessAt), `snapshotCount` = length. Vérifie que le noeud existe dans le doc de la stratégie du propriétaire du jeton (404 sinon). Rate-limit 60/min/token. Met à jour `last_used_at`. Réponse `{ ok: true, evaluationStatus }`. Aussi `POST /api/ingest/:strategyId/by-hostname/:hostname` (résolution par `hostname` du noeud, insensible à la casse, 409 si ambigu) pour simplifier le script côté machine.
+- Tests d'intégration pour tout (isolation utilisateurs, token invalide, coalescence, purge, restore, ingestion alerte freshness).
+
+## Front
+- **editor-fields** (propriétaire `web/src/editor/{store.ts,Toolbar.tsx,StrategyEditorPage.tsx,nodes.tsx,editor.css,Canvas.tsx}`, `web/src/editor/panels/**`, `web/src/editor/help/**`) :
+  - Inspector : champs `retention`, `lastRestoreTestAt` (input date), `staleAfterHours` (nombre, support seulement, aide « alerte si aucun backup depuis… »), bloc lecture seule « État réel » (outil, dernier succès relatif + absolu, nb snapshots, taille, échec) à partir de `statuses` (nouvelle prop optionnelle `status?: NodeStatus`).
+  - Pastille d'état sur le noeud (vert « Backup il y a 3 h » / rouge « Échec » / orange « Ancien ») ; chargement de `statuses` depuis `api.strategies.get` dans le store (lecture seule, non renvoyé au PUT) ; évaluation locale avec `evaluate(doc,{statuses})`.
+  - AlertsPanel : bouton « Corriger » quand `alert.fix` (prop `onApplyFix(fix)`), `store.applyFix` (ajoute noeud positionné à droite du `fromId` + lien, sélectionne le nouveau noeud, undo en une étape).
+  - **Aide 3-2-1** : `HelpDialog` (`<dialog>` natif, FR simple, schéma SVG pédagogique 3 copies / 2 supports / 1 hors site + une phrase sur chaque règle + « et après ? : tester la restauration ») ouvert automatiquement à la 1re ouverture de l'éditeur (flag localStorage try/catch), bouton « ? Aide » dans la Toolbar.
+  - Toolbar : boutons « Historique » (ouvre `<VersionsDrawer strategyId open onClose onRestored>` de `./history/VersionsDrawer` ; onRestored recharge le store) et « Rapport » (lien `/s/:id/report`, nouvel onglet). Mettre à jour `exportImage.ts` n'est pas requis.
+- **editor-history** (propriétaire `web/src/editor/history/**`) : `VersionsDrawer` (props du stub) : panneau latéral/modal, liste des versions (date relative + absolue, nb nœuds/liens, raison), aperçu au clic (mini-diagramme SVG simple de `api.strategies.version`, diff texte : « +2 nœuds, −1 lien »), bouton « Restaurer cette version » avec confirmation, états chargement/vide/erreur, a11y (focus trap, Échap). Tests vitest.
+- **report** (propriétaire `web/src/report/**`) : `ReportPage` (default export, route `/s/:id/report`) : page imprimable A4 (`@media print`, sauts de page propres), bouton « Imprimer / Enregistrer en PDF » (`window.print()`) et « Exporter l'inventaire (CSV) » (échappement CSV, BOM UTF-8, `;`). Contenu : en-tête (nom, description, date de génération, statut de conformité), synthèse 3-2-1 (ComplianceBar/SourceReport réutilisés depuis `editor/panels`), diagramme SVG statique (écrire un rendu SVG autonome dans `web/src/report/diagram.tsx` incluant hostname/IP/chiffrement), tableau d'inventaire des noeuds (nom, type, site, machine, IP, données, fréquence, chiffrement, rétention, dernier test de restauration, dernier backup réel), tableau des liens, alertes groupées avec recommandations. Lecture seule, sans dépendance nouvelle. Thème clair forcé à l'impression. Tests vitest du CSV.
+- **tokens-restic** (propriétaire `web/src/account/**`, `web/src/pages/Account.tsx`, `scripts/**`, `docs/RESTIC.md`, `README.md` section dédiée) : composant `ApiTokens` dans Account (créer jeton nommé, affichage unique du jeton avec bouton copier, liste, révocation avec confirmation) + encart « Brancher restic » avec snippet pré-rempli (URL du site, id/hostname). `scripts/restic-report.sh` (POSIX sh, `set -eu`) : lance/consomme `restic snapshots --json --latest 1` (ou `--group-by`), calcule status, POST vers `/api/ingest/<stratégie>/by-hostname/<host>` ou `/<nodeId>` avec `curl --fail -sS -H "Authorization: Bearer $BACKUPVIIZ_TOKEN"`, variables d'env documentées (`BACKUPVIIZ_URL`, `BACKUPVIIZ_TOKEN`, `BACKUPVIIZ_STRATEGY`, `BACKUPVIIZ_NODE`/`BACKUPVIIZ_HOST`, `RESTIC_REPOSITORY` etc. déjà dans l'env restic), gestion d'échec de `restic backup` (reporter `failed`) ; mode wrapper `restic-report.sh -- restic backup …` qui exécute la commande et reporte ok/failed ; ne logge jamais le jeton. `docs/RESTIC.md` : mise en place pas à pas (cron/systemd timer exemple, Windows PowerShell exemple court, relation avec `staleAfterHours`, vérification manuelle `restic check` / test de restauration `restic restore latest --target`). Vérifie le script avec `sh -n` et `shellcheck` si dispo, et un test local contre le serveur lancé avec un faux `restic` dans le PATH.
+
+## Propriété (itération 2)
+| Agent | Fichiers |
+|---|---|
+| shared-engine2 | `shared/**` (sauf `types.ts`) |
+| server2 | `server/**` |
+| editor-fields | voir ci-dessus |
+| editor-history | `web/src/editor/history/**` |
+| report | `web/src/report/**` |
+| tokens-restic | `web/src/account/**`, `web/src/pages/Account.tsx`, `scripts/**`, `docs/RESTIC.md`, `README.md` |
