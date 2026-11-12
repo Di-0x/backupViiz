@@ -31,6 +31,8 @@ type Menu =
   | { x: number; y: number; type: 'node'; id: string }
   | { x: number; y: number; type: 'edge'; id: string };
 
+type MenuSpec = Menu extends infer M ? (M extends Menu ? Omit<M, 'x' | 'y'> : never) : never;
+
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function Canvas() {
@@ -210,7 +212,7 @@ export default function Canvas() {
     [rf],
   );
 
-  const openMenu = useCallback((e: ReactMouseEvent | MouseEvent, m: Omit<Menu, 'x' | 'y'>) => {
+  const openMenu = useCallback((e: ReactMouseEvent | MouseEvent, m: MenuSpec) => {
     e.preventDefault();
     const r = wrapRef.current?.getBoundingClientRect();
     setMenu({ ...(m as Menu), x: e.clientX - (r?.left ?? 0), y: e.clientY - (r?.top ?? 0) });
