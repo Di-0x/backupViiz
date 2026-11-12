@@ -21,7 +21,7 @@ export function setUnauthorizedHandler(fn: UnauthorizedHandler | null): void {
   onUnauthorized = fn;
 }
 
-const PUBLIC_PATHS = ['/api/auth/login', '/api/auth/register', '/api/auth/me', '/api/auth/config', '/api/passkey/login/', '/api/passkey/signup/'];
+const PUBLIC_PATHS = ['/api/auth/login', '/api/auth/register', '/api/auth/me', '/api/auth/config', '/api/auth/passkey/login/', '/api/auth/passkey/signup/'];
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   let res: Response;
@@ -79,15 +79,15 @@ export const api = {
     setPassword: (input: { currentPassword?: string; newPassword: string }) => post<void>('/api/auth/password', input),
   },
   passkey: {
-    list: () => get<PasskeyInfo[]>('/api/passkey'),
-    registerOptions: () => post<unknown>('/api/passkey/register/options'),
-    registerVerify: (response: unknown, name?: string) => post<PasskeyInfo>('/api/passkey/register/verify', { response, name }),
-    loginOptions: (username?: string) => post<unknown>('/api/passkey/login/options', username ? { username } : {}),
-    loginVerify: (response: unknown) => post<User>('/api/passkey/login/verify', { response }),
-    signupOptions: (username: string) => post<unknown>('/api/passkey/signup/options', { username }),
-    signupVerify: (response: unknown) => post<User>('/api/passkey/signup/verify', { response }),
-    rename: (id: string, name: string) => request<PasskeyInfo>('PATCH', `/api/passkey/${encodeURIComponent(id)}`, { name }),
-    remove: (id: string) => request<void>('DELETE', `/api/passkey/${encodeURIComponent(id)}`),
+    list: () => get<PasskeyInfo[]>('/api/auth/passkey'),
+    registerOptions: () => post<unknown>('/api/auth/passkey/register/options'),
+    registerVerify: (response: unknown, name?: string) => post<PasskeyInfo>('/api/auth/passkey/register/verify', { response, name }),
+    loginOptions: (username?: string) => post<unknown>('/api/auth/passkey/login/options', username ? { username } : {}),
+    loginVerify: (response: unknown) => post<User>('/api/auth/passkey/login/verify', { response }),
+    signupOptions: (username: string) => post<unknown>('/api/auth/passkey/signup/options', { username }),
+    signupVerify: (response: unknown) => post<User>('/api/auth/passkey/signup/verify', { response }),
+    rename: (id: string, name: string) => request<PasskeyInfo>('PATCH', `/api/auth/passkey/${encodeURIComponent(id)}`, { name }),
+    remove: (id: string) => request<void>('DELETE', `/api/auth/passkey/${encodeURIComponent(id)}`),
   },
   strategies: {
     list: () => get<StrategySummary[]>('/api/strategies'),

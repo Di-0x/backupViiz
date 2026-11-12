@@ -1,11 +1,14 @@
-import { DatabaseSync } from 'node:sqlite';
+import { createRequire } from 'node:module';
+import type { DatabaseSync as DatabaseSyncType } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 const path = process.env.DATABASE_PATH ?? './data/backupviiz.db';
 if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
 
-export const db = new DatabaseSync(path);
+// require() évite que le bundler retire le préfixe `node:` (sqlite n'est reconnu que préfixé).
+const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as typeof import('node:sqlite');
+export const db: DatabaseSyncType = new DatabaseSync(path);
 db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
 
 db.exec(`
