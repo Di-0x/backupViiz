@@ -44,7 +44,9 @@ body:has(.rp) { background: #e9ecf1; }
 .rp-diagram { display: block; margin: 0 auto; border: 1px solid var(--border); border-radius: 8px; height: auto; }
 .rp-tablewrap { overflow-x: auto; }
 .rp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-.rp-table th, .rp-table td { border: 1px solid var(--border); padding: 5px 7px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.rp-table th, .rp-table td { border: 1px solid var(--border); padding: 5px 7px; text-align: left; vertical-align: top; overflow-wrap: break-word; }
+.rp-table--inventory thead th { white-space: nowrap; }
+.rp-table--inventory th, .rp-table--inventory td { padding: 5px 5px; }
 .rp-table thead th { background: var(--surface-2); font-weight: 600; }
 .rp-table tbody th { font-weight: 600; }
 .rp-table td.is-ko { color: var(--err); font-weight: 600; }
@@ -73,4 +75,11 @@ body:has(.rp) { background: #e9ecf1; }
   .rp-table thead { display: table-header-group; }
   .rp-diagram { max-height: 170mm; }
   a { color: inherit; text-decoration: none; }
+}
+.rp .cbar__label { display: inline !important; }
+@media print {
+  .rp-tablewrap { overflow: visible; }
+  .rp-table { table-layout: auto; width: 100%; }
+  .rp-table--inventory thead th { white-space: normal; }
+  .rp-table--inventory th, .rp-table--inventory td { padding: 3px 4px; font-size: 7.5pt; }
 }

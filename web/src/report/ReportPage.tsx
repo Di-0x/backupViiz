@@ -21,14 +21,21 @@ const GROUPS: { severity: Severity; title: string }[] = [
   { severity: 'info', title: 'Informations' },
 ];
 
+function recoFor(a: { id: string; rule: string }): string {
+  if (a.id.startsWith('structure:orphan:')) return 'Reliez ce support à une source ou supprimez-le s\'il est inutile.';
+  if (a.id.startsWith('structure:schedule:')) return 'Renseignez la fréquence de ce lien (ex. Quotidien 02:00).';
+  if (a.id.startsWith('structure:no-outgoing:')) return 'Ajoutez un lien sortant de cette source vers un support de sauvegarde.';
+  return RECO[a.rule] ?? 'Corrigez ce point.';
+}
+
 const RECO: Record<string, string> = {
   '3': 'Ajoutez une copie supplémentaire (support distinct) pour atteindre 3 copies au total.',
   '2': 'Stockez au moins une copie sur un autre type de support (ex. NAS + cloud).',
   '1': 'Conservez au moins une copie hors site (cloud, site distant) pour survivre à un sinistre local.',
-  structure: 'Reliez ce noeud à une source ou supprimez-le s\'il est inutile.',
+  structure: 'Corrigez ce point dans le diagramme (liens, fréquences, doublons).',
   immutable: 'Activez une copie immuable (WORM, air-gap) pour résister aux rançongiciels.',
   encryption: 'Chiffrez ce support et ses données, surtout s\'il est hors site.',
-  restore: 'Effectuez un test de restauration, puis renseignez sa date dans la fiche du noeud.',
+  restore: 'Effectuez un test de restauration, puis renseignez sa date dans la fiche du nœud.',
   freshness: 'Vérifiez le job de sauvegarde (planification, accès, espace disque) et relancez-le.',
 };
 
@@ -134,9 +141,9 @@ export default function ReportPage() {
       </section>
 
       <section className="rp-section rp-break" aria-labelledby="rp-s-inventory">
-        <h2 id="rp-s-inventory">Inventaire des noeuds</h2>
+        <h2 id="rp-s-inventory">Inventaire des nœuds</h2>
         {nodes.length === 0 ? (
-          <p className="rp-muted">Aucun noeud.</p>
+          <p className="rp-muted">Aucun nœud.</p>
         ) : (
           <div className="rp-tablewrap">
             <table className="rp-table rp-table--inventory">
@@ -151,8 +158,8 @@ export default function ReportPage() {
                   <th scope="col">Fréquence</th>
                   <th scope="col">Chiffrement</th>
                   <th scope="col">Rétention</th>
-                  <th scope="col">Test de restauration</th>
-                  <th scope="col">Dernier backup réel</th>
+                  <th scope="col">Test restauration</th>
+                  <th scope="col">Dernier backup</th>
                 </tr>
               </thead>
               <tbody>
@@ -229,7 +236,7 @@ export default function ReportPage() {
                     <li key={a.id} className={`rp-alert rp-alert--${a.severity}`}>
                       <p className="rp-alert__msg">{a.message}</p>
                       {a.nodeIds.length > 0 ? <p className="rp-sub">Concerne : {tokenize(nodes, a.nodeIds)}</p> : null}
-                      <p className="rp-alert__reco"><strong>Recommandation :</strong> {RECO[a.rule] ?? 'Corrigez ce point.'}</p>
+                      <p className="rp-alert__reco"><strong>Recommandation :</strong> {recoFor(a)}</p>
                     </li>
                   ))}
                 </ul>

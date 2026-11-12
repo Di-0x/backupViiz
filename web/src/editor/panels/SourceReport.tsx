@@ -29,7 +29,7 @@ export default function SourceReport({ evaluation, nodes }: SourceReportProps) {
           <article key={s.sourceId} className={`sreport__card ${s.compliant ? 'is-ok' : 'is-ko'}`} aria-label={`Source ${name}`}>
             <header className="sreport__head">
               {node ? <span className="sreport__icon">{MEDIA_META[node.mediaType].icon}</span> : null}
-              <h4 className="sreport__name">{name}</h4>
+              <h3 className="sreport__name">{name}</h3>
               <span className={`sreport__verdict ${s.compliant ? 'is-ok' : 'is-ko'}`}>{s.compliant ? 'Conforme' : 'Non conforme'}</span>
             </header>
             <ul className="sreport__rules">

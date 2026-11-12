@@ -30,7 +30,7 @@ export default function ReportDiagram({ doc, statuses = {} }: { doc: StrategyDoc
       width="100%"
       style={{ maxWidth: width, maxHeight: '150mm' }}
       role="img"
-      aria-label={`Diagramme de la stratégie : ${doc.nodes.length} noeuds, ${doc.edges.length} liens`}
+      aria-label={`Diagramme de la stratégie : ${doc.nodes.length} nœuds, ${doc.edges.length} liens`}
       fontFamily="system-ui,Segoe UI,Arial,sans-serif"
     >
       <defs>
