@@ -224,3 +224,22 @@ describe('evaluate', () => {
     expect(Date.now() - t).toBeLessThan(200);
   });
 });
+
+describe('chiffrement', () => {
+  const base = (encrypted?: boolean) => ({
+    nodes: [
+      { id: 's', kind: 'source' as const, label: 'PC', mediaType: 'ssd' as const, location: 'onsite' as const, position: { x: 0, y: 0 } },
+      { id: 'c', kind: 'storage' as const, label: 'Cloud', mediaType: 'cloud' as const, location: 'offsite' as const, encrypted, position: { x: 1, y: 0 } },
+    ],
+    edges: [{ id: 'e', from: 's', to: 'c' }],
+  });
+  it('avertit pour un support hors site non chiffré', () => {
+    const a = evaluate(base(false)).alerts.find((x) => x.rule === 'encryption');
+    expect(a?.severity).toBe('warning');
+    expect(a?.nodeIds).toEqual(['c']);
+  });
+  it('aucune alerte si chiffré ou non renseigné', () => {
+    expect(evaluate(base(true)).alerts.some((x) => x.rule === 'encryption')).toBe(false);
+    expect(evaluate(base(undefined)).alerts.some((x) => x.rule === 'encryption')).toBe(false);
+  });
+});

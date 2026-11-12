@@ -41,6 +41,31 @@ export default function Inspector({ node, edge, nodes, onChangeNode, onChangeEdg
             {LOCATIONS.map((l) => <option key={l} value={l}>{LOCATION_LABEL[l]}</option>)}
           </select>
         </div>
+        <div className="inspector__field">
+          <label htmlFor={id('host')}>Nom de machine</label>
+          <input id={id('host')} type="text" maxLength={100} placeholder="ex : srv-compta-01" autoComplete="off" value={node.hostname ?? ''} onChange={(e) => onChangeNode(node.id, { hostname: e.target.value })} />
+        </div>
+        <div className="inspector__field">
+          <label htmlFor={id('ip')}>Adresse IP</label>
+          <input id={id('ip')} type="text" inputMode="decimal" maxLength={64} placeholder="ex : 192.168.1.10" autoComplete="off" value={node.ip ?? ''} onChange={(e) => onChangeNode(node.id, { ip: e.target.value })} />
+        </div>
+        <div className="inspector__field">
+          <label htmlFor={id('data')}>{isSource ? 'Données à sauvegarder' : 'Données sauvegardées'}</label>
+          <textarea id={id('data')} rows={2} maxLength={500} placeholder="ex : bases SQL, dossier /srv/partages" value={node.data ?? ''} onChange={(e) => onChangeNode(node.id, { data: e.target.value })} />
+        </div>
+        <div className="inspector__field">
+          <label htmlFor={id('freq')}>Fréquence de sauvegarde</label>
+          <input id={id('freq')} type="text" list={id('freq-list')} maxLength={100} placeholder="ex : Quotidien 02:00" value={node.frequency ?? ''} onChange={(e) => onChangeNode(node.id, { frequency: e.target.value })} />
+          <datalist id={id('freq-list')}>{SCHEDULE_SUGGESTIONS.map((s) => <option key={s} value={s} />)}</datalist>
+        </div>
+        <div className="inspector__field">
+          <label htmlFor={id('enc')}>Chiffrement</label>
+          <select id={id('enc')} value={node.encrypted === undefined ? '' : node.encrypted ? 'yes' : 'no'} onChange={(e) => onChangeNode(node.id, { encrypted: e.target.value === '' ? undefined : e.target.value === 'yes' })}>
+            <option value="">Non renseigné</option>
+            <option value="yes">Chiffré</option>
+            <option value="no">Non chiffré</option>
+          </select>
+        </div>
         <div className="inspector__field inspector__field--check">
           <input id={id('imm')} type="checkbox" checked={!!node.immutable} onChange={(e) => onChangeNode(node.id, { immutable: e.target.checked })} />
           <label htmlFor={id('imm')}>Copie immuable / WORM / air-gap</label>

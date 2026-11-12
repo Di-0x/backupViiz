@@ -19,6 +19,16 @@ export interface BackupNode {
   location: Location;
   /** Copie immuable / WORM / air-gap (bonus 3-2-1-1-0, info uniquement). */
   immutable?: boolean;
+  /** Chiffrement du support / des données (undefined = non renseigné). */
+  encrypted?: boolean;
+  /** Nom de machine (hostname). */
+  hostname?: string;
+  /** Adresse IP ou plage. */
+  ip?: string;
+  /** Données concernées (ex: « Bases SQL, /srv/files »). */
+  data?: string;
+  /** Fréquence de sauvegarde / réplication (ex: « Quotidien 02:00 »). */
+  frequency?: string;
   notes?: string;
   position: { x: number; y: number };
 }
@@ -40,7 +50,7 @@ export interface StrategyDoc {
   edges: BackupEdge[];
 }
 
-export type RuleId = '3' | '2' | '1' | 'structure' | 'immutable';
+export type RuleId = '3' | '2' | '1' | 'structure' | 'immutable' | 'encryption';
 export type Severity = 'error' | 'warning' | 'info';
 
 export interface Alert {

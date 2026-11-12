@@ -191,6 +191,19 @@ export function evaluate(doc: StrategyDoc): Evaluation {
         });
       }
     }
+    for (const n of nodes) {
+      if (n.kind !== 'storage' || n.encrypted !== false || !reachedByAny.has(n.id)) continue;
+      const off = n.location === 'offsite';
+      alerts.push({
+        id: `encryption:${n.id}`,
+        rule: 'encryption',
+        severity: off ? 'warning' : 'info',
+        message: off
+          ? `Le support hors site "${n.label}" n'est pas chiffré — activez le chiffrement : une copie distante non chiffrée expose vos données.`
+          : `Le support "${n.label}" n'est pas chiffré — envisagez de le chiffrer.`,
+        nodeIds: [n.id],
+      });
+    }
     if (!anyImmutable) {
       alerts.push({
         id: 'immutable:global',

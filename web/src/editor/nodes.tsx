@@ -41,7 +41,14 @@ function NodeCard({ data, selected, kind }: { data: BackupNodeData; selected?: b
           <span>{meta.label}</span>
           <span className={`bv-pill bv-pill--${n.location}`}>{LOCATION_LABEL[n.location]}</span>
           {n.immutable && <span className="bv-pill bv-pill--immutable">Immuable</span>}
+          {n.encrypted === true && <span className="bv-pill bv-pill--enc">🔒 Chiffré</span>}
+          {n.encrypted === false && <span className="bv-pill bv-pill--noenc">Non chiffré</span>}
         </div>
+        {(n.hostname || n.ip) && (
+          <div className="bv-node__host" title={[n.hostname, n.ip].filter(Boolean).join(' · ')}>
+            {[n.hostname, n.ip].filter(Boolean).join(' · ')}
+          </div>
+        )}
       </div>
       {data.copy != null && (
         <span className="bv-node__copy" title={`Copie n° ${data.copy}`}>

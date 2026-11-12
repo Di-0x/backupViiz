@@ -20,6 +20,11 @@ export const backupNodeSchema = z.object({
   mediaType: z.enum(MEDIA_TYPES),
   location: z.enum(LOCATIONS),
   immutable: z.boolean().optional(),
+  encrypted: z.boolean().optional(),
+  hostname: z.string().trim().max(100, '100 caractères maximum').optional(),
+  ip: z.string().trim().max(64, '64 caractères maximum').optional(),
+  data: z.string().max(500, '500 caractères maximum').optional(),
+  frequency: z.string().trim().max(100, '100 caractères maximum').optional(),
   notes: notesSchema.optional(),
   position: z.object({
     x: z.number().finite().min(-1e6).max(1e6),
