@@ -1,0 +1,35 @@
+services:
+  backupviiz:
+    build: .
+    image: backupviiz:latest
+    container_name: backupviiz
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      PORT: "3000"
+      DATABASE_PATH: /data/backupviiz.db
+      WEB_DIST: /app/public
+      ALLOW_REGISTRATION: "${ALLOW_REGISTRATION:-false}"
+      TRUST_PROXY: "${TRUST_PROXY:-false}"
+      COOKIE_SECURE: "${COOKIE_SECURE:-}"
+      WEBAUTHN_RP_ID: "${WEBAUTHN_RP_ID:-}"
+      WEBAUTHN_ORIGIN: "${WEBAUTHN_ORIGIN:-}"
+    volumes:
+      - backupviiz-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  backupviiz-data:
