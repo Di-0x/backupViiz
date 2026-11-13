@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LOCATIONS, MEDIA_TYPES, NODE_KINDS } from './types';
+import { LOCATIONS, MEDIA_TYPES, NODE_KINDS, STRATEGY_RULES } from './types';
 
 export const MAX_NODES = 200;
 export const MAX_EDGES = 500;
@@ -50,6 +50,7 @@ export const backupEdgeSchema = z.object({
 export const strategyDocSchema = z.object({
   nodes: z.array(backupNodeSchema).max(MAX_NODES, `${MAX_NODES} éléments maximum`),
   edges: z.array(backupEdgeSchema).max(MAX_EDGES, `${MAX_EDGES} liens maximum`),
+  options: z.object({ rule: z.enum(STRATEGY_RULES).optional() }).optional(),
 });
 
 const nameSchema = z.string().trim().min(1, 'Nom requis').max(100, '100 caractères maximum');

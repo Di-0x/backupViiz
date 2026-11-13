@@ -51,9 +51,19 @@ export interface BackupEdge {
   notes?: string;
 }
 
+/** Référentiel appliqué à la stratégie : 3-2-1 classique ou 3-2-1-1-0 (+1 copie immuable/air-gap, 0 erreur de restauration). */
+export const STRATEGY_RULES = ['3-2-1', '3-2-1-1-0'] as const;
+export type StrategyRule = (typeof STRATEGY_RULES)[number];
+
+export interface StrategyOptions {
+  /** Défaut : '3-2-1'. */
+  rule?: StrategyRule;
+}
+
 export interface StrategyDoc {
   nodes: BackupNode[];
   edges: BackupEdge[];
+  options?: StrategyOptions;
 }
 
 export type RuleId = '3' | '2' | '1' | 'structure' | 'immutable' | 'encryption' | 'restore' | 'freshness';
@@ -73,7 +83,7 @@ export interface NodeStatus {
 
 /** Correction proposée en un clic ; appliquée côté éditeur (undo possible). */
 export type AlertFix =
-  | { kind: 'add-storage'; fromId: string; label: string; mediaType: MediaType; location: Location }
+  | { kind: 'add-storage'; fromId: string; label: string; mediaType: MediaType; location: Location; immutable?: boolean }
   | { kind: 'connect'; fromId: string; toId: string };
 
 export interface Alert {
@@ -100,12 +110,18 @@ export interface SourceEvaluation {
   /** copies>=3 */ ruleThree: boolean;
   /** >=2 types de supports distincts (source incluse) */ ruleTwo: boolean;
   /** >=1 copie offsite */ ruleOne: boolean;
+  /** 3-2-1-1-0 uniquement : ≥1 copie de sauvegarde immuable / air-gap atteignable. */
+  ruleImmutable?: boolean;
+  /** 3-2-1-1-0 uniquement : restauration testée et aucun dernier backup en échec. */
+  ruleZero?: boolean;
   compliant: boolean;
 }
 
 export type ComplianceStatus = 'compliant' | 'warning' | 'violation' | 'empty';
 
 export interface Evaluation {
+  /** Référentiel utilisé pour cette évaluation. */
+  rule?: StrategyRule;
   status: ComplianceStatus; // violation si ≥1 alerte error ; warning si ≥1 warning ; empty si aucune source
   sources: SourceEvaluation[];
   alerts: Alert[];

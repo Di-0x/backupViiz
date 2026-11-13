@@ -2,6 +2,8 @@
 
 Outil web auto-hébergé pour concevoir et vérifier vos stratégies de backup **3-2-1** : éditeur graphique des chemins de sauvegarde, évaluation en temps réel, alertes de non-conformité, authentification par mot de passe ou passkeys.
 
+Chaque stratégie peut suivre le référentiel **3-2-1** classique ou **3-2-1-1-0** (option dans la barre d’outils de l’éditeur) : en plus des 3 copies / 2 supports / 1 hors site, il exige 1 copie immuable ou hors ligne (WORM, air-gap) et 0 erreur (restauration testée, aucun dernier backup en échec).
+
 ## Démarrage rapide (Docker)
 
 ```bash

@@ -39,7 +39,7 @@ function toStrategy(r: Row): Strategy {
   return {
     id: r.id, name: r.name, description: r.description,
     createdAt: r.created_at, updatedAt: r.updated_at,
-    nodes: doc.nodes, edges: doc.edges,
+    nodes: doc.nodes, edges: doc.edges, ...(doc.options ? { options: doc.options } : {}),
     evaluation: evaluateWithStatuses(doc, statuses), statuses,
   };
 }

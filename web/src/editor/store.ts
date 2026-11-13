@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { evaluate } from '@backupviiz/shared';
-import type { AlertFix, BackupEdge, BackupNode, Evaluation, NodeStatus, Strategy, StrategyDoc } from '@backupviiz/shared';
+import type { AlertFix, BackupEdge, BackupNode, Evaluation, NodeStatus, Strategy, StrategyDoc, StrategyRule } from '@backupviiz/shared';
 import type { PaletteItem } from './presets';
 
 const HISTORY_LIMIT = 100;
@@ -86,6 +86,8 @@ export interface EditorState {
   load: (s: Strategy) => void;
   reset: () => void;
   setName: (name: string) => void;
+  /** Référentiel de la stratégie (3-2-1 ou 3-2-1-1-0). */
+  setRule: (rule: StrategyRule) => void;
   beginGesture: () => void;
   moveNodes: (positions: Record<string, { x: number; y: number }>) => void;
   addNode: (item: PaletteItem, at?: { x: number; y: number }) => string;
@@ -159,8 +161,8 @@ export const useEditor = create<EditorState>((set, get) => {
         id: s.id,
         name: s.name,
         description: s.description,
-        doc: { nodes: s.nodes, edges: s.edges },
-        evaluation: evaluateDoc({ nodes: s.nodes, edges: s.edges }, s.statuses ?? {}),
+        doc: { nodes: s.nodes, edges: s.edges, ...(s.options ? { options: s.options } : {}) },
+        evaluation: evaluateDoc({ nodes: s.nodes, edges: s.edges, options: s.options }, s.statuses ?? {}),
         statuses: s.statuses ?? {},
         selectedNodeIds: [],
         selectedEdgeIds: [],
@@ -174,6 +176,11 @@ export const useEditor = create<EditorState>((set, get) => {
       set({ id: null, name: '', doc: EMPTY_DOC, evaluation: EMPTY_EVAL, statuses: {}, past: [], future: [], selectedNodeIds: [], selectedEdgeIds: [], rev: 0, highlightedNodeIds: [] }),
 
     setName: (name) => set((s) => ({ name, rev: s.rev + 1 })),
+    setRule: (rule) => {
+      const s = get();
+      if ((s.doc.options?.rule ?? '3-2-1') === rule) return;
+      commit({ ...s.doc, options: { ...s.doc.options, rule } });
+    },
 
     beginGesture: () => set({ lastKey: null }),
 
@@ -251,10 +258,11 @@ export const useEditor = create<EditorState>((set, get) => {
         label: fix.label.slice(0, 80),
         mediaType: fix.mediaType,
         location: fix.location,
+        ...(fix.immutable ? { immutable: true } : {}),
         position: { x, y },
       };
       const edge: BackupEdge = { id: uid('e'), from: from.id, to: node.id };
-      commit({ nodes: [...s.doc.nodes, node], edges: [...s.doc.edges, edge] }, undefined, {
+      commit({ ...s.doc, nodes: [...s.doc.nodes, node], edges: [...s.doc.edges, edge] }, undefined, {
         selectedNodeIds: [node.id],
         selectedEdgeIds: [],
         focusRequest: { ids: [node.id], n: (s.focusRequest?.n ?? 0) + 1 },
@@ -299,7 +307,7 @@ export const useEditor = create<EditorState>((set, get) => {
       const edges: BackupEdge[] = s.doc.edges
         .filter((e) => map.has(e.from) && map.has(e.to))
         .map((e) => ({ ...e, id: uid('e'), from: map.get(e.from)!, to: map.get(e.to)! }));
-      commit({ nodes: [...s.doc.nodes, ...copies], edges: [...s.doc.edges, ...edges] }, undefined, {
+      commit({ ...s.doc, nodes: [...s.doc.nodes, ...copies], edges: [...s.doc.edges, ...edges] }, undefined, {
         selectedNodeIds: copies.map((c) => c.id),
         selectedEdgeIds: [],
       });

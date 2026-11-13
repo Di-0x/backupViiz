@@ -65,6 +65,7 @@ export function evaluate(doc: StrategyDoc, opts: EvaluateOptions = {}): Evaluati
   const statuses = opts.statuses;
   const nowDate = opts.now instanceof Date && !Number.isNaN(opts.now.getTime()) ? opts.now : new Date();
   const nowMs = nowDate.getTime();
+  const strict = doc.options?.rule === '3-2-1-1-0';
   const withOpts = opts.statuses !== undefined || opts.now !== undefined;
   const nodes = doc.nodes;
   const edges = doc.edges;
@@ -172,16 +173,26 @@ export function evaluate(doc: StrategyDoc, opts: EvaluateOptions = {}): Evaluati
     const mediaSet = new Set<MediaType>([src.mediaType]);
     let offsite = src.location === 'offsite' ? 1 : 0;
     let immutable = !!src.immutable;
+    let storageImmutable = false;
     for (const n of reachable) {
       mediaSet.add(n.mediaType);
       if (n.location === 'offsite') offsite++;
-      if (n.immutable) immutable = true;
+      if (n.immutable) (immutable = true, (storageImmutable = true));
     }
     if (immutable) anyImmutable = true;
 
     const ruleThree = copies >= 3;
     const ruleTwo = mediaSet.size >= 2;
     const ruleOne = offsite >= 1;
+    const concerned = [src.id, ...reachable.map((n) => n.id)];
+    let latestTest: number | null = null;
+    for (const id of concerned) {
+      const t = parseTime(byId.get(id)?.lastRestoreTestAt);
+      if (t !== null && (latestTest === null || t > latestTest)) latestTest = t;
+    }
+    const anyFailed = reachable.some((n) => statuses?.[n.id]?.lastStatus === 'failed');
+    const ruleImmutable = storageImmutable;
+    const ruleZero = latestTest !== null && !anyFailed;
     sourceEvals.push({
       sourceId: src.id,
       copies,
@@ -191,10 +202,10 @@ export function evaluate(doc: StrategyDoc, opts: EvaluateOptions = {}): Evaluati
       ruleThree,
       ruleTwo,
       ruleOne,
-      compliant: ruleThree && ruleTwo && ruleOne,
+      ...(strict ? { ruleImmutable, ruleZero } : {}),
+      compliant: ruleThree && ruleTwo && ruleOne && (!strict || (ruleImmutable && ruleZero)),
     });
 
-    const concerned = [src.id, ...reachable.map((n) => n.id)];
     const fixLocation: Location = ruleOne ? 'onsite' : 'offsite';
     const fixFor = (mediaType: MediaType, location: Location): AlertFix => ({
       kind: 'add-storage',
@@ -240,17 +251,23 @@ export function evaluate(doc: StrategyDoc, opts: EvaluateOptions = {}): Evaluati
 
     // Test de restauration : un test sur la source ou sur n'importe quel support atteignable la couvre.
     // On retient le plus récent des tests valides (dates invalides ignorées).
-    let latestTest: number | null = null;
-    for (const id of concerned) {
-      const t = parseTime(byId.get(id)?.lastRestoreTestAt);
-      if (t !== null && (latestTest === null || t > latestTest)) latestTest = t;
+    if (strict && !ruleImmutable) {
+      alerts.push({
+        id: `immutable:${src.id}`,
+        rule: 'immutable',
+        severity: 'error',
+        message: `Source "${src.label}" : aucune copie immuable ou hors ligne (le « 1 » de 3-2-1-1-0) — ajoutez une copie WORM / air-gap, protégée d'un rançongiciel.`,
+        nodeIds: concerned,
+        sourceId: src.id,
+        fix: { kind: 'add-storage', fromId: tailId, label: `Cloud immuable — copie de ${src.label}`.slice(0, 80), mediaType: 'cloud', location: 'offsite', immutable: true },
+      });
     }
     if (latestTest === null) {
-      if (withOpts) {
+      if (strict || withOpts) {
         alerts.push({
           id: `restore:${src.id}`,
           rule: 'restore',
-          severity: 'info',
+          severity: strict ? 'error' : 'info',
           message: `Source "${src.label}" : restauration jamais testée — restaurez un fichier depuis une sauvegarde et notez la date du test.`,
           nodeIds: concerned,
           sourceId: src.id,
@@ -262,7 +279,7 @@ export function evaluate(doc: StrategyDoc, opts: EvaluateOptions = {}): Evaluati
         alerts.push({
           id: `restore:${src.id}`,
           rule: 'restore',
-          severity: 'warning',
+          severity: strict ? 'error' : 'warning',
           message: `Source "${src.label}" : dernier test de restauration il y a ${days} jours (plus d'un an) — une sauvegarde non testée n'est pas fiable, testez une restauration dès maintenant.`,
           nodeIds: concerned,
           sourceId: src.id,
@@ -354,7 +371,7 @@ export function evaluate(doc: StrategyDoc, opts: EvaluateOptions = {}): Evaluati
         }
       }
     }
-    if (!anyImmutable) {
+    if (!strict && !anyImmutable) {
       alerts.push({
         id: 'immutable:global',
         rule: 'immutable',
@@ -377,5 +394,5 @@ export function evaluate(doc: StrategyDoc, opts: EvaluateOptions = {}): Evaluati
   else if (alerts.some((a) => a.severity === 'warning')) status = 'warning';
   else status = 'compliant';
 
-  return { status, sources: sourceEvals, alerts };
+  return { rule: strict ? '3-2-1-1-0' : '3-2-1', status, sources: sourceEvals, alerts };
 }

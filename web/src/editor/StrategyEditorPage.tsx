@@ -172,6 +172,8 @@ export default function StrategyEditorPage() {
         <Toolbar
           name={name}
           onName={(v) => useEditor.getState().setName(v)}
+          rule={doc.options?.rule ?? '3-2-1'}
+          onRule={(r) => useEditor.getState().setRule(r)}
           status={autosave.status}
           errorMessage={autosave.errorMessage}
           onRetry={() => void autosave.saveNow()}

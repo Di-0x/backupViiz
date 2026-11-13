@@ -34,6 +34,14 @@ export default function ComplianceBar({ evaluation }: ComplianceBarProps) {
     mk('2', '2', c2, 'Règle des 2 types de supports', 'supports'),
     mk('1', '1', c1, 'Règle de 1 copie hors site', 'hors site'),
   ];
+  if (evaluation.rule === '3-2-1-1-0') {
+    const ci = src.filter((s) => s.ruleImmutable).length;
+    const cz = src.filter((s) => s.ruleZero).length;
+    pills.push(
+      mk('i', '1', ci, 'Règle de 1 copie immuable ou hors ligne', 'immuable'),
+      mk('z', '0', cz, 'Règle des 0 erreur (restauration testée, aucun backup en échec)', 'erreur'),
+    );
+  }
   return (
     <div className="cbar" role="group" aria-label="Conformité 3-2-1">
       {pills.map((p, i) => (
