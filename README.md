@@ -66,6 +66,18 @@ npm run build      # web -> web/dist, serveur -> server/dist
 
 Structure : `shared/` (types, schémas et moteur d'évaluation), `server/` (Fastify + SQLite), `web/` (React + Vite). Le serveur est bundlé par tsup ; seules ses dépendances externes sont installées dans l'image finale (non-root, `tini`, healthcheck `/api/health`).
 
-## CI
+## CI et image Docker prête à l'emploi
 
-`.github/workflows/ci.yml` : typecheck, tests, build, puis build de l'image Docker et test de démarrage.
+- `.github/workflows/ci.yml` : typecheck, tests et build à chaque PR et push sur `main`.
+- `.github/workflows/docker-image.yml` : build de l'image, test de démarrage, puis publication sur GitHub Container Registry :
+  - pull request n°12 → `ghcr.io/di-0x/backupviiz:pr-12`
+  - push sur `main` → `ghcr.io/di-0x/backupviiz:latest` et `:sha-<commit>`
+
+Récupérer l'image (dépôt privé : se connecter d'abord avec un jeton personnel ayant le droit `read:packages`) :
+
+```bash
+echo "$GITHUB_PAT" | docker login ghcr.io -u <utilisateur> --password-stdin
+docker run -d --name backupviiz -p 3000:3000 -v backupviiz-data:/data --restart unless-stopped ghcr.io/di-0x/backupviiz:latest
+```
+
+**Minutes GitHub Actions.** Sur un dépôt privé, ces workflows consomment le quota de minutes du compte. Pour ne pas en consommer, installez un runner auto-hébergé sur une machine disposant de Docker (Settings → Actions → Runners → New self-hosted runner), puis créez la variable de dépôt `RUNNER` avec la valeur `self-hosted` (Settings → Secrets and variables → Actions → Variables). Les deux workflows l'utiliseront alors à la place des runners GitHub.
