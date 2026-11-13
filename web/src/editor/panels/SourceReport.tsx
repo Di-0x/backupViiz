@@ -42,6 +42,12 @@ export default function SourceReport({ evaluation, nodes }: SourceReportProps) {
                 </span>
               </li>
               <li><Check ok={s.ruleOne} label="Règle 1" /> <span><strong>{s.offsiteCopies}</strong> copie{s.offsiteCopies > 1 ? 's' : ''} hors site sur 1 requise</span></li>
+              {s.ruleImmutable !== undefined ? (
+                <li><Check ok={s.ruleImmutable} label="Copie immuable" /> <span>{s.ruleImmutable ? 'Au moins 1 copie immuable ou hors ligne' : 'Aucune copie immuable ou hors ligne (1 requise)'}</span></li>
+              ) : null}
+              {s.ruleZero !== undefined ? (
+                <li><Check ok={s.ruleZero} label="0 erreur" /> <span>{s.ruleZero ? 'Restauration testée, aucun backup en échec' : 'Restauration non testée ou backup en échec'}</span></li>
+              ) : null}
             </ul>
             {s.reachableStorageIds.length > 0 ? (
               <p className="sreport__muted">

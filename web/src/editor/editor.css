@@ -142,3 +142,5 @@ kbd { font-family: var(--mono); font-size: 12px; padding: 0 4px; border: 1px sol
 .bv-status--ok { color: var(--ok); }
 .bv-status--failed { color: var(--err); }
 .bv-status--stale { color: var(--warn); }
+
+.bv-rule select { min-height: 36px; padding: 0 8px; font: inherit; font-size: 14px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }

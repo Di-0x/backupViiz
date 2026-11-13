@@ -55,3 +55,23 @@ describe('store.applyFix', () => {
     expect(useEditor.getState().doc.nodes).toHaveLength(2);
   });
 });
+
+describe('store.setRule (3-2-1-1-0)', () => {
+  beforeEach(() => useEditor.getState().load(strat));
+
+  it('bascule le référentiel, réévalue, est undoable et conserve options après applyFix', () => {
+    const st = () => useEditor.getState();
+    expect(st().evaluation.rule).toBe('3-2-1');
+    st().setRule('3-2-1-1-0');
+    expect(st().doc.options?.rule).toBe('3-2-1-1-0');
+    expect(st().evaluation.rule).toBe('3-2-1-1-0');
+    const fix = st().evaluation.alerts.find((a) => a.id === 'immutable:a')?.fix;
+    expect(fix).toMatchObject({ kind: 'add-storage', immutable: true });
+    const id = st().applyFix(fix!)!;
+    expect(st().doc.options?.rule).toBe('3-2-1-1-0');
+    expect(st().doc.nodes.find((n) => n.id === id)?.immutable).toBe(true);
+    st().undo();
+    st().undo();
+    expect(st().doc.options).toBeUndefined();
+  });
+});

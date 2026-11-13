@@ -124,6 +124,7 @@ export default function ReportPage() {
         {strategy.description ? <p className="rp-desc">{strategy.description}</p> : null}
         <div className="rp-meta">
           <ComplianceBadge status={evaluation.status} errorCount={errorCount} warningCount={warningCount} />
+          <span>Référentiel : {strategy.evaluation.rule ?? '3-2-1'}</span>
           <span>Généré le {fmtDateTime(generatedAt)}</span>
           <span>Dernière modification : {fmtDateTime(strategy.updatedAt)}</span>
         </div>

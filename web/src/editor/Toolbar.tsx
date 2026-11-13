@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
-import type { Evaluation } from '@backupviiz/shared';
+import type { Evaluation, StrategyRule } from '@backupviiz/shared';
 import { ComplianceBar } from './panels';
 import type { SaveStatus } from './useAutosave';
 
 export interface ToolbarProps {
   name: string;
   onName: (v: string) => void;
+  rule: StrategyRule;
+  onRule: (r: StrategyRule) => void;
   status: SaveStatus;
   errorMessage: string | null;
   onRetry: () => void;
@@ -47,6 +49,13 @@ export default function Toolbar(p: ToolbarProps) {
         maxLength={100}
         placeholder="Nom de la stratégie"
       />
+      <label className="bv-rule">
+        <span className="sr-only">Référentiel de conformité</span>
+        <select value={p.rule} onChange={(e) => p.onRule(e.target.value as StrategyRule)} title="Référentiel de conformité : 3-2-1 classique ou 3-2-1-1-0 (+ copie immuable, 0 erreur de restauration)">
+          <option value="3-2-1">Règle 3-2-1</option>
+          <option value="3-2-1-1-0">Règle 3-2-1-1-0</option>
+        </select>
+      </label>
       <div className={`bv-save bv-save--${p.status}`} role="status" aria-live="polite">
         {p.status === 'saved' && 'Enregistré'}
         {p.status === 'dirty' && 'Modifications en attente…'}
